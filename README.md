@@ -1,5 +1,5 @@
 # Hello there! :wave:
-Hi, I'm Rahul, a passionate **full stack developer** and a **graduate student** at University of Windsor from India currently living in Canada. My passion is to build impactful solutions that empowers people. 
+Hi, I'm Rahul, a passionate **full stack developer** and a **graduate student** at University of Windsor from India currently living in Canada. **My passion is to build impactful solutions that empowers people.**
 
 ## About me
 - Creative, detail-oriented, problem-solving and a collaborative software developer.
@@ -44,8 +44,8 @@ Hi, I'm Rahul, a passionate **full stack developer** and a **graduate student** 
 
 ## You can find me at
 <p>
-  <a href="https://www.instagram.com/rider__rahul" target="_blank"><img src="https://img.shields.io/badge/Instagram-%23E4405F.svg?style=for-the-badge&logo=Instagram&logoColor=white" /></a>
   <a href="https://www.linkedin.com/in/narayanan-rahul/" target="_blank"><img src="https://img.shields.io/badge/linkedin-%230077B5.svg?style=for-the-badge&logo=linkedin&logoColor=white" /></a>
+  <a href="https://www.instagram.com/rider__rahul" target="_blank"><img src="https://img.shields.io/badge/Instagram-%23E4405F.svg?style=for-the-badge&logo=Instagram&logoColor=white" /></a>
 </p>
 
 
