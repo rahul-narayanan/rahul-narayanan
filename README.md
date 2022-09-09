@@ -42,7 +42,7 @@ Hi, I'm Rahul, a passionate **full stack developer** and a **graduate student** 
   <img alt="Heroku" src="https://img.shields.io/badge/-Heroku-430098?style=for-the-badge&logo=heroku&logoColor=white" />
 </p>
 
-[![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=rahul-narayanan)](https://github.com/anuraghazra/github-readme-stats)
+[![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=rahul-narayanan&layout=compact&langs_count=10&theme=react&count_private=true)](https://github.com/anuraghazra/github-readme-stats)
 
 
 ## You can find me at
