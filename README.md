@@ -1,5 +1,5 @@
 # Hello there! :wave:
-Hi, I'm Rahul. A Passionate **Full Stack Developer** and a **Graduate Student** at University of Windsor from India currently living in Canada. **My passion is to build impactful solutions that empowers people.**
+Hi, I'm Rahul. A Passionate **Software Developer** and a **Graduate Student** at University of Windsor from India currently living in Canada. **My passion is to build impactful solutions that empowers people.**
 
 ## About me
 - Creative, detail-oriented, problem-solving and a collaborative software developer.
