@@ -1,65 +1,72 @@
-import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { Observable } from 'rxjs';
-import { debounceTime, distinctUntilChanged, map, startWith, switchMap } from 'rxjs/operators';
-import { ApiService } from '../api.service';
+import { startWith, map } from 'rxjs/operators';
 
 @Component({
   selector: 'app-autocomplete-multi-select',
   templateUrl: './autocomplete-multi-select.component.html',
   styleUrls: ['./autocomplete-multi-select.component.css']
 })
-export class AutocompleteMultiSelectComponent {
-  @ViewChild('searchInput') searchInput: ElementRef;
+export class AutocompleteMultiSelectComponent<T> implements OnInit {
+  @Input() placeholder: string;
+  @Input() apiService: any;
+  @Output() selectionChange = new EventEmitter<T[]>();
+  formControl = new FormControl();
+  filteredOptions: Observable<T[]>;
+  options: T[];
 
-  searchControl = new FormControl();
-  filteredOptions: Observable<string[]>;
-
-  selectedOptions: string[] = [];
-
-  constructor(private apiService: ApiService) {
-    this.filteredOptions = this.searchControl.valueChanges.pipe(
-      startWith(''),
-      debounceTime(300),
-      distinctUntilChanged(),
-      switchMap(value => this.apiService.getOptions(value)),
-      map(response => response.options),
-    );
+  ngOnInit() {
+    this.apiService.getOptions().subscribe((options: T[]) => {
+      this.options = options;
+      this.filteredOptions = this.formControl.valueChanges.pipe(
+        startWith(''),
+        map(value => this._filter(value))
+      );
+    });
   }
 
-  removeOption(option: string) {
-    const index = this.selectedOptions.indexOf(option);
+  private _filter(value: string): T[] {
+    const filterValue = value.toLowerCase();
+    return this.options.filter(option => option.toString().toLowerCase().includes(filterValue));
+  }
 
-    if (index >= 0) {
-      this.selectedOptions.splice(index, 1);
+  addOption(option: T) {
+    if (this.formControl.value.indexOf(option) === -1) {
+      this.formControl.setValue([...this.formControl.value, option]);
+      this.selectionChange.emit(this.formControl.value);
     }
   }
 
-  optionSelected(event: MatAutocompleteSelectedEvent) {
-    const option = event.option.viewValue;
-
-    if (!this.selectedOptions.includes(option)) {
-      this.selectedOptions.push(option);
-      this.searchInput.nativeElement.value = '';
-      this.searchControl.setValue('');
-    }
+  removeOption(index: number) {
+    const value = [...this.formControl.value];
+    value.splice(index, 1);
+    this.formControl.setValue(value);
+    this.selectionChange.emit(this.formControl.value);
   }
 }
 
 
 
-<mat-form-field appearance="outline">
-  <mat-chip-list #chipList>
-    <mat-chip *ngFor="let option of selectedOptions" (removed)="removeOption(option)">
-      {{ option }}
-      <mat-icon matChipRemove>cancel</mat-icon>
-    </mat-chip>
-    <input #searchInput matInput [formControl]="searchControl" [matAutocomplete]="auto" placeholder="Search options...">
-  </mat-chip-list>
-  <mat-autocomplete #auto="matAutocomplete" (optionSelected)="optionSelected($event)">
-    <mat-option *ngFor="let option of filteredOptions | async" [value]="option">
-      {{ option }}
-    </mat-option>
-  </mat-autocomplete>
-</mat-form-field>
+<div class="autocomplete">
+  <mat-form-field>
+    <mat-label>{{placeholder}}</mat-label>
+    <input type="text" matInput [formControl]="formControl" [matAutocomplete]="auto">
+    <mat-autocomplete #auto="matAutocomplete">
+      <mat-option *ngFor="let option of filteredOptions | async" (click)="addOption(option)" [value]="option">
+        {{option}}
+      </mat-option>
+    </mat-autocomplete>
+  </mat-form-field>
+  <div class="selected-options">
+    <div class="selected-option" *ngFor="let option of formControl.value; let i = index">
+      {{option}}
+      <button
+        mat-icon-button
+        aria-label="Remove"
+        (click)="removeOption(i)">
+        <mat-icon>cancel</mat-icon>
+      </button>
+    </div>
+  </div>
+</div>
