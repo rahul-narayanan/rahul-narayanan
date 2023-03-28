@@ -1,72 +1,59 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { FormControl } from '@angular/forms';
-import { Observable } from 'rxjs';
-import { startWith, map } from 'rxjs/operators';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Observable, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+
+export interface Option {
+  id: number;
+  name: string;
+}
+
+export interface AutocompleteMultiSelectProps<T> {
+  apiService: {
+    getOptions(searchTerm: string): Observable<T[]>;
+  };
+  placeholder: string;
+  selectedOptions?: T[];
+}
 
 @Component({
   selector: 'app-autocomplete-multi-select',
   templateUrl: './autocomplete-multi-select.component.html',
   styleUrls: ['./autocomplete-multi-select.component.css']
 })
-export class AutocompleteMultiSelectComponent<T> implements OnInit {
-  @Input() placeholder: string;
-  @Input() apiService: any;
+export class AutocompleteMultiSelectComponent<T extends Option> {
+  @Input() props: AutocompleteMultiSelectProps<T>;
   @Output() selectionChange = new EventEmitter<T[]>();
-  formControl = new FormControl();
-  filteredOptions: Observable<T[]>;
-  options: T[];
+
+  searchInput$ = new Subject<string>();
+  options$: Observable<T[]>;
+
+  selectedOptions: T[] = [];
+
+  constructor() {}
 
   ngOnInit() {
-    this.apiService.getOptions().subscribe((options: T[]) => {
-      this.options = options;
-      this.filteredOptions = this.formControl.valueChanges.pipe(
-        startWith(''),
-        map(value => this._filter(value))
-      );
-    });
-  }
+    this.options$ = this.searchInput$.pipe(
+      debounceTime(200),
+      distinctUntilChanged(),
+      switchMap((searchTerm: string) =>
+        this.props.apiService.getOptions(searchTerm)
+      )
+    );
 
-  private _filter(value: string): T[] {
-    const filterValue = value.toLowerCase();
-    return this.options.filter(option => option.toString().toLowerCase().includes(filterValue));
-  }
-
-  addOption(option: T) {
-    if (this.formControl.value.indexOf(option) === -1) {
-      this.formControl.setValue([...this.formControl.value, option]);
-      this.selectionChange.emit(this.formControl.value);
+    if (this.props.selectedOptions) {
+      this.selectedOptions = this.props.selectedOptions;
     }
   }
 
-  removeOption(index: number) {
-    const value = [...this.formControl.value];
-    value.splice(index, 1);
-    this.formControl.setValue(value);
-    this.selectionChange.emit(this.formControl.value);
+  onOptionSelected(option: T) {
+    if (!this.selectedOptions.find(o => o.id === option.id)) {
+      this.selectedOptions.push(option);
+      this.selectionChange.emit(this.selectedOptions);
+    }
+  }
+
+  onOptionRemoved(option: T) {
+    this.selectedOptions = this.selectedOptions.filter(o => o.id !== option.id);
+    this.selectionChange.emit(this.selectedOptions);
   }
 }
-
-
-
-<div class="autocomplete">
-  <mat-form-field>
-    <mat-label>{{placeholder}}</mat-label>
-    <input type="text" matInput [formControl]="formControl" [matAutocomplete]="auto">
-    <mat-autocomplete #auto="matAutocomplete">
-      <mat-option *ngFor="let option of filteredOptions | async" (click)="addOption(option)" [value]="option">
-        {{option}}
-      </mat-option>
-    </mat-autocomplete>
-  </mat-form-field>
-  <div class="selected-options">
-    <div class="selected-option" *ngFor="let option of formControl.value; let i = index">
-      {{option}}
-      <button
-        mat-icon-button
-        aria-label="Remove"
-        (click)="removeOption(i)">
-        <mat-icon>cancel</mat-icon>
-      </button>
-    </div>
-  </div>
-</div>
