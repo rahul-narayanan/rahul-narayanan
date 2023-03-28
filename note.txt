@@ -1,0 +1,65 @@
+import { Component, ElementRef, ViewChild } from '@angular/core';
+import { FormControl } from '@angular/forms';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { Observable } from 'rxjs';
+import { debounceTime, distinctUntilChanged, map, startWith, switchMap } from 'rxjs/operators';
+import { ApiService } from '../api.service';
+
+@Component({
+  selector: 'app-autocomplete-multi-select',
+  templateUrl: './autocomplete-multi-select.component.html',
+  styleUrls: ['./autocomplete-multi-select.component.css']
+})
+export class AutocompleteMultiSelectComponent {
+  @ViewChild('searchInput') searchInput: ElementRef;
+
+  searchControl = new FormControl();
+  filteredOptions: Observable<string[]>;
+
+  selectedOptions: string[] = [];
+
+  constructor(private apiService: ApiService) {
+    this.filteredOptions = this.searchControl.valueChanges.pipe(
+      startWith(''),
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(value => this.apiService.getOptions(value)),
+      map(response => response.options),
+    );
+  }
+
+  removeOption(option: string) {
+    const index = this.selectedOptions.indexOf(option);
+
+    if (index >= 0) {
+      this.selectedOptions.splice(index, 1);
+    }
+  }
+
+  optionSelected(event: MatAutocompleteSelectedEvent) {
+    const option = event.option.viewValue;
+
+    if (!this.selectedOptions.includes(option)) {
+      this.selectedOptions.push(option);
+      this.searchInput.nativeElement.value = '';
+      this.searchControl.setValue('');
+    }
+  }
+}
+
+
+
+<mat-form-field appearance="outline">
+  <mat-chip-list #chipList>
+    <mat-chip *ngFor="let option of selectedOptions" (removed)="removeOption(option)">
+      {{ option }}
+      <mat-icon matChipRemove>cancel</mat-icon>
+    </mat-chip>
+    <input #searchInput matInput [formControl]="searchControl" [matAutocomplete]="auto" placeholder="Search options...">
+  </mat-chip-list>
+  <mat-autocomplete #auto="matAutocomplete" (optionSelected)="optionSelected($event)">
+    <mat-option *ngFor="let option of filteredOptions | async" [value]="option">
+      {{ option }}
+    </mat-option>
+  </mat-autocomplete>
+</mat-form-field>
