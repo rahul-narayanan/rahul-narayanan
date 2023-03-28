@@ -1,59 +1,16 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { Observable, Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
-
-export interface Option {
-  id: number;
-  name: string;
-}
-
-export interface AutocompleteMultiSelectProps<T> {
-  apiService: {
-    getOptions(searchTerm: string): Observable<T[]>;
-  };
-  placeholder: string;
-  selectedOptions?: T[];
-}
-
-@Component({
-  selector: 'app-autocomplete-multi-select',
-  templateUrl: './autocomplete-multi-select.component.html',
-  styleUrls: ['./autocomplete-multi-select.component.css']
-})
-export class AutocompleteMultiSelectComponent<T extends Option> {
-  @Input() props: AutocompleteMultiSelectProps<T>;
-  @Output() selectionChange = new EventEmitter<T[]>();
-
-  searchInput$ = new Subject<string>();
-  options$: Observable<T[]>;
-
-  selectedOptions: T[] = [];
-
-  constructor() {}
-
-  ngOnInit() {
-    this.options$ = this.searchInput$.pipe(
-      debounceTime(200),
-      distinctUntilChanged(),
-      switchMap((searchTerm: string) =>
-        this.props.apiService.getOptions(searchTerm)
-      )
-    );
-
-    if (this.props.selectedOptions) {
-      this.selectedOptions = this.props.selectedOptions;
-    }
-  }
-
-  onOptionSelected(option: T) {
-    if (!this.selectedOptions.find(o => o.id === option.id)) {
-      this.selectedOptions.push(option);
-      this.selectionChange.emit(this.selectedOptions);
-    }
-  }
-
-  onOptionRemoved(option: T) {
-    this.selectedOptions = this.selectedOptions.filter(o => o.id !== option.id);
-    this.selectionChange.emit(this.selectedOptions);
-  }
-}
+<div class="autocomplete-multi-select">
+  <div class="selected-options">
+    <div class="selected-option" *ngFor="let option of selectedOptions">
+      {{ option }} <span class="remove-option" (click)="onOptionRemoved(option)">X</span>
+    </div>
+    <input class="search-input" type="text" placeholder="{{ props.placeholder }}" (input)="searchInput$.next($event.target.value)" [(ngModel)]="searchTerm">
+  </div>
+  <div class="options" *ngIf="options$ | async as options">
+    <div class="option" *ngFor="let option of options" (click)="onOptionSelected(option)">
+      {{ option }}
+    </div>
+    <div class="no-options" *ngIf="options.length === 0">
+      No options found.
+    </div>
+  </div>
+</div>
