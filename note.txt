@@ -1,16 +1,14 @@
-<div class="autocomplete-multi-select">
-  <div class="selected-options">
-    <div class="selected-option" *ngFor="let option of selectedOptions">
-      {{ option }} <span class="remove-option" (click)="onOptionRemoved(option)">X</span>
-    </div>
-    <input class="search-input" type="text" placeholder="{{ props.placeholder }}" (input)="searchInput$.next($event.target.value)" [(ngModel)]="searchTerm">
-  </div>
-  <div class="options" *ngIf="options$ | async as options">
-    <div class="option" *ngFor="let option of options" (click)="onOptionSelected(option)">
-      {{ option }}
-    </div>
-    <div class="no-options" *ngIf="options.length === 0">
-      No options found.
-    </div>
-  </div>
-</div>
+<mat-form-field appearance="outline">
+  <mat-chip-list #chipList>
+    <mat-chip *ngFor="let option of selectedOptions" [removable]="true" (removed)="removeOption(option)">
+      {{option}}
+      <mat-icon matChipRemove>cancel</mat-icon>
+    </mat-chip>
+    <input type="text" placeholder="Search options" aria-label="Search options" matInput [formControl]="searchControl" #searchInput [matAutocomplete]="auto" (matChipInputTokenEnd)="addOption($event)">
+    <mat-autocomplete #auto="matAutocomplete" (optionSelected)="optionSelected($event)">
+      <mat-option *ngFor="let option of filteredOptions | async" [value]="option">
+        {{option}}
+      </mat-option>
+    </mat-autocomplete>
+  </mat-chip-list>
+</mat-form-field>
