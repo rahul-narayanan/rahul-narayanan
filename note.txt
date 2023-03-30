@@ -1,8 +1,13 @@
 import { Component, Input } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { Observable } from 'rxjs';
-import { map, startWith } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { ApiService } from '../api.service';
+
+interface Option {
+  id: string;
+  name: string;
+}
 
 @Component({
   selector: 'app-multiselect-autocomplete',
@@ -10,116 +15,69 @@ import { map, startWith } from 'rxjs/operators';
   styleUrls: ['./multiselect-autocomplete.component.css'],
 })
 export class MultiselectAutocompleteComponent {
-  @Input() optionsService: any;
-  @Input() displayProp: string;
-  @Input() valueProp: string;
-  @Input() label: string;
-  @Input() placeholder: string;
-  @Input() required: boolean;
-  @Input() disabled: boolean;
-  @Input() error: string;
-  @Input() selectedOptions: any[] = [];
-  @Input() maxSelectedOptions: number;
+  @Input() optionsService!: ApiService;
+  @Input() displayProp!: keyof Option;
+  @Input() valueProp!: keyof Option;
+  @Input() label!: string;
+  @Input() placeholder!: string;
+  @Input() required!: boolean;
+  @Input() disabled!: boolean;
+  @Input() error!: string;
+  @Input() selectedOptions: Option[] = [];
+  @Input() maxSelectedOptions!: number;
 
-  searchControl = new FormControl();
-  options: any[] = [];
-  filteredOptions$: Observable<any[]>;
+  options: Option[] = [];
+  filteredOptions!: Observable<Option[]>;
+  formControl = new FormControl();
+
   loading = false;
 
-  constructor() {}
-
   ngOnInit() {
-    this.fetchOptions();
-    this.filteredOptions$ = this.searchControl.valueChanges.pipe(
-      startWith(null),
-      map((searchTerm: string | null) =>
-        searchTerm ? this._filterOptions(searchTerm) : this.options.slice()
-      )
+    this.filteredOptions = this.formControl.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap((searchTerm) => {
+        this.loading = true;
+        return this.optionsService.getOptions(searchTerm).pipe(
+          // Here we map the API response to an array of Option objects
+          map((options: any[]) =>
+            options.map((option) => ({ id: option.id, name: option.name }))
+          ),
+          // After the API call is complete, set loading to false
+          // and filter the options based on the search term
+          tap(() => (this.loading = false)),
+          map((options) =>
+            searchTerm ? this.filterOptions(searchTerm, options) : options
+          )
+        );
+      })
     );
   }
 
-  private fetchOptions() {
-    this.loading = true;
-    this.optionsService.getOptions().subscribe(
-      (options) => {
-        this.loading = false;
-        this.options = options;
-      },
-      (error) => {
-        this.loading = false;
-        console.error(error);
-      }
-    );
-  }
-
-  private _filterOptions(searchTerm: string): any[] {
+  filterOptions(searchTerm: string, options: Option[]): Option[] {
     const filterValue = searchTerm.toLowerCase();
-    return this.options.filter(
-      (option) => option[this.displayProp].toLowerCase().indexOf(filterValue) > -1
+    return options.filter(
+      (option) =>
+        option[this.displayProp].toLowerCase().indexOf(filterValue) !== -1
     );
   }
 
-  displayFn(option: any): string {
+  displayFn(option: Option): string {
     return option && option[this.displayProp] ? option[this.displayProp] : '';
   }
 
-  selectOption(event: MatAutocompleteSelectedEvent) {
-    const option = event.option.value;
-    if (this.maxSelectedOptions && this.selectedOptions.length >= this.maxSelectedOptions) {
+  addOption(option: Option) {
+    if (this.selectedOptions.length >= this.maxSelectedOptions) {
       return;
     }
-    if (!this.selectedOptions.some((o) => o[this.valueProp] === option[this.valueProp])) {
-      this.selectedOptions.push(option);
-    }
-    this.searchControl.setValue(null);
+    this.selectedOptions.push(option);
+    this.formControl.setValue(null);
   }
 
-  removeOption(option: any) {
+  removeOption(option: Option) {
     const index = this.selectedOptions.indexOf(option);
     if (index >= 0) {
       this.selectedOptions.splice(index, 1);
     }
   }
 }
-
-
-
-<mat-form-field [style.width]="'100%'">
-      <mat-label>{{ label }}</mat-label>
-      <mat-chip-list #chipList [disabled]="disabled">
-        <mat-chip *ngFor="let option of selectedOptions" [removable]="true" (removed)="removeOption(option)">
-          {{ option[displayProp] }}
-          <mat-icon matChipRemove>cancel</mat-icon>
-        </mat-chip>
-        <input
-          type="text"
-          placeholder="{{ placeholder }}"
-          [formControl]="searchControl"
-          [matAutocomplete]="auto"
-          (focus)="auto.openPanel()"
-          [disabled]="disabled"
-        />
-      </mat-chip-list>
-      <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn" (optionSelected)="selectOption($event)">
-        <mat-option *ngFor="let option of filteredOptions$ | async" [value]="option">
-          {{ option[displayProp] }}
-        </mat-option>
-      </mat-autocomplete>
-      <mat-error>{{ error }}</mat-error>
-      <mat-spinner *ngIf="loading" matSuffix diameter="20"></mat-spinner>
-    </mat-form-field>
-
-
-
-<app-multiselect-autocomplete
-      [optionsService]="optionsService"
-      displayProp="name"
-      valueProp="id"
-      label="Fruits"
-      placeholder="Select some fruits"
-      [required]="true"
-      [disabled]="false"
-      error="Please select at least one fruit"
-      [selectedOptions]="selectedFruits"
-      [maxSelectedOptions]="3"
-    ></app-multiselect-autocomplete>
