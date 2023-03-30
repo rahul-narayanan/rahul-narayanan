@@ -108,3 +108,18 @@ export class MultiselectAutocompleteComponent {
       <mat-error>{{ error }}</mat-error>
       <mat-spinner *ngIf="loading" matSuffix diameter="20"></mat-spinner>
     </mat-form-field>
+
+
+
+<app-multiselect-autocomplete
+      [optionsService]="optionsService"
+      displayProp="name"
+      valueProp="id"
+      label="Fruits"
+      placeholder="Select some fruits"
+      [required]="true"
+      [disabled]="false"
+      error="Please select at least one fruit"
+      [selectedOptions]="selectedFruits"
+      [maxSelectedOptions]="3"
+    ></app-multiselect-autocomplete>
