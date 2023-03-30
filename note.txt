@@ -1,64 +1,55 @@
-import { Component, Input } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { Observable } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { debounceTime, switchMap } from 'rxjs/operators';
 import { ApiService } from '../api.service';
-
-interface Option {
-  id: string;
-  name: string;
-}
+import { Option } from './option.interface';
 
 @Component({
   selector: 'app-multiselect-autocomplete',
   templateUrl: './multiselect-autocomplete.component.html',
-  styleUrls: ['./multiselect-autocomplete.component.css'],
+  styleUrls: ['./multiselect-autocomplete.component.css']
 })
-export class MultiselectAutocompleteComponent {
-  @Input() optionsService!: ApiService;
-  @Input() displayProp!: keyof Option;
-  @Input() valueProp!: keyof Option;
-  @Input() label!: string;
-  @Input() placeholder!: string;
-  @Input() required!: boolean;
-  @Input() disabled!: boolean;
-  @Input() error!: string;
-  @Input() selectedOptions: Option[] = [];
-  @Input() maxSelectedOptions!: number;
+export class MultiselectAutocompleteComponent implements OnInit {
+  @Input() label: string;
+  @Input() placeholder: string;
+  @Input() required: boolean;
+  @Input() disabled: boolean;
+  @Input() displayProp: string;
+  @Input() valueProp: string;
+  @Input() apiService: ApiService;
+  @Output() selectedOptionsChange = new EventEmitter<Option[]>();
 
-  options: Option[] = [];
-  filteredOptions!: Observable<Option[]>;
   formControl = new FormControl();
-
+  filteredOptions: Observable<Option[]>;
+  selectedOptions: Option[] = [];
   loading = false;
+  error: string;
 
-  ngOnInit() {
-    this.filteredOptions = this.formControl.valueChanges.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      switchMap((searchTerm) => {
-        this.loading = true;
-        return this.optionsService.getOptions(searchTerm).pipe(
-          // Here we map the API response to an array of Option objects
-          map((options: any[]) =>
-            options.map((option) => ({ id: option.id, name: option.name }))
-          ),
-          // After the API call is complete, set loading to false
-          // and filter the options based on the search term
-          tap(() => (this.loading = false)),
-          map((options) =>
-            searchTerm ? this.filterOptions(searchTerm, options) : options
-          )
-        );
-      })
-    );
+  constructor() {}
+
+  ngOnInit(): void {
+    // Fetch options with an empty search value on component initialization
+    this.filteredOptions = this.fetchOptions('');
   }
 
-  filterOptions(searchTerm: string, options: Option[]): Option[] {
-    const filterValue = searchTerm.toLowerCase();
-    return options.filter(
-      (option) =>
-        option[this.displayProp].toLowerCase().indexOf(filterValue) !== -1
+  fetchOptions(query: string): Observable<Option[]> {
+    // Set loading to true to show the loading spinner
+    this.loading = true;
+    return this.apiService.getOptions(query).pipe(
+      switchMap((options: Option[]) => {
+        // Filter out options that are already selected
+        const filteredOptions = options.filter(
+          (option) =>
+            !this.selectedOptions.find(
+              (selectedOption) => selectedOption.id === option.id
+            )
+        );
+        // Set loading to false to hide the loading spinner
+        this.loading = false;
+        return new Observable((observer) => observer.next(filteredOptions));
+      }),
+      debounceTime(300)
     );
   }
 
@@ -66,18 +57,44 @@ export class MultiselectAutocompleteComponent {
     return option && option[this.displayProp] ? option[this.displayProp] : '';
   }
 
-  addOption(option: Option) {
-    if (this.selectedOptions.length >= this.maxSelectedOptions) {
-      return;
-    }
+  addOption(option: Option): void {
     this.selectedOptions.push(option);
-    this.formControl.setValue(null);
+    // Reset the form control to clear the search input
+    this.formControl.reset();
+    // Emit the updated selected options array
+    this.selectedOptionsChange.emit(this.selectedOptions);
   }
 
-  removeOption(option: Option) {
+  removeOption(option: Option): void {
     const index = this.selectedOptions.indexOf(option);
     if (index >= 0) {
       this.selectedOptions.splice(index, 1);
+      // Emit the updated selected options array
+      this.selectedOptionsChange.emit(this.selectedOptions);
     }
   }
+
+  onInputChange(value: string): void {
+    // Fetch options with the current search value
+    this.filteredOptions = this.fetchOptions(value);
+  }
 }
+
+
+
+
+<mat-chip-list>
+    <mat-chip *ngFor="let option of selectedOptions" (removed)="removeOption(option)">
+      {{ option[displayProp] }}
+      <mat-icon matChipRemove>cancel</mat-icon>
+    </mat-chip>
+    <input
+      matInput
+      [placeholder]="placeholder"
+      [required]="required"
+      [disabled]="disabled"
+      [formControl]="formControl"
+      (input)="onInputChange(formControl.value)"
+      [matAutocomplete]="auto"
+    />
+  </mat-chip-list>
