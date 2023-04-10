@@ -1,57 +1,55 @@
-# Use an official Node.js runtime as the base image for building the app
-FROM node:14 as build
+import { Component, Input, OnInit } from '@angular/core';
+import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
+import { ErrorStateMatcher } from '@angular/material/core';
 
-# Set the working directory
-WORKDIR /app
+@Component({
+  selector: 'app-input',
+  template: `
+    <mat-form-field>
+      <input matInput [formControl]="formControl" [formControlName]="formControlName" [type]="type" [placeholder]="placeholder">
+      <mat-error *ngIf="controlInvalid">
+        <div *ngIf="formControl.errors?.required">
+          {{requiredErrorMessage}}
+        </div>
+        <div *ngIf="formControl.errors?.pattern">
+          {{patternErrorMessage}}
+        </div>
+        <!-- Add additional error messages for other validation rules -->
+      </mat-error>
+    </mat-form-field>
+  `,
+})
+export class InputComponent implements OnInit {
+  @Input() formControl: FormControl;
+  @Input() formControlName: string;
+  @Input() type = 'text';
+  @Input() placeholder = '';
 
-# Copy the package.json and package-lock.json files to the container
-COPY package*.json ./
+  @Input() requiredErrorMessage = 'This field is required.';
+  @Input() patternErrorMessage = 'Invalid input.';
 
-# Install dependencies
-RUN npm install
+  // Add additional error message inputs for other validation rules
 
-# Copy the rest of the application files to the container
-COPY . .
+  controlInvalid = false;
+  matcher: ErrorStateMatcher;
 
-# Build the Angular app
-RUN npm run build -- --prod --output-path=/app/dist
+  constructor(private formGroupDirective: FormGroupDirective) {
+    this.matcher = new MyErrorStateMatcher();
+  }
 
-# Use an official Nginx runtime as the base image for serving the app
-FROM nginx:alpine
+  ngOnInit() {
+    if (!this.formControl && this.formControlName) {
+      this.formControl = this.formGroupDirective.form.get(this.formControlName) as FormControl;
+    }
+  }
+}
 
-# Remove the default Nginx configuration file
-RUN rm /etc/nginx/conf.d/default.conf
+class MyErrorStateMatcher implements ErrorStateMatcher {
+  isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
+    const isSubmitted = form && form.submitted;
+    const isInvalid = !!(control && control.invalid && control.parent.dirty);
+    const isTouched = !!(control && control.touched);
 
-# Copy the custom Nginx configuration file to the container
-COPY nginx.conf /etc/nginx/conf.d/
-
-# Copy the built Angular app files to the container
-COPY --from=build /app/dist /usr/share/nginx/html
-
-# Expose port 8080
-EXPOSE 8080
-
-# Start Nginx and keep it running in the foreground
-CMD ["nginx", "-g", "daemon off;"]
-
-
-
-
-
-
-
-
-
-
-server {
-  listen 8080;
-  server_name localhost;
-
-  root /usr/share/nginx/html;
-
-  index index.html;
-
-  location / {
-    try_files $uri $uri/ /index.html;
+    return (isInvalid && (isSubmitted || isTouched));
   }
 }
