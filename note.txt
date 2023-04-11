@@ -53,3 +53,13 @@ class MyErrorStateMatcher implements ErrorStateMatcher {
     return (isInvalid && (isSubmitted || isTouched));
   }
 }
+
+
+
+
+const usersWithEntitlements = await getRepository(User)
+  .createQueryBuilder('user')
+  .select(['user.id', 'user.name', 'JSON_ARRAYAGG(JSON_OBJECT("entitlement_type", entitlement.type, "entitlement_value", entitlement.value)) AS entitlements'])
+  .leftJoin('user.entitlements', 'entitlement')
+  .groupBy('user.id')
+  .getRawMany();
