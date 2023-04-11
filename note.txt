@@ -63,3 +63,17 @@ const usersWithEntitlements = await getRepository(User)
   .leftJoin('user.entitlements', 'entitlement')
   .groupBy('user.id')
   .getRawMany();
+  
+  
+  
+  
+  
+  
+  
+  
+  const usersWithEntitlements = await getRepository(User)
+  .createQueryBuilder('user')
+  .select(['user.id', 'user.name', `CONCAT('[', STRING_AGG(CONCAT('{"entitlement_type":"', entitlement.type, '", "entitlement_value":"', entitlement.value, '"}'), ','), ']') AS entitlements`])
+  .leftJoin('user.entitlements', 'entitlement')
+  .groupBy('user.id')
+  .getRawMany();
