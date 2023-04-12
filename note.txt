@@ -106,3 +106,13 @@ SELECT
 FROM your_table_name
 
 
+
+SELECT 
+    JSON_QUERY(
+        CONCAT('{', STUFF((
+            SELECT CONCAT(',"', id, '":"', name, '"')
+            FROM your_table_name
+            FOR XML PATH('')
+        ), 1, 1, ''), '}')
+    ) AS [dictionary]
+
