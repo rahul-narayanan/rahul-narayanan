@@ -77,3 +77,11 @@ const usersWithEntitlements = await getRepository(User)
   .leftJoin('user.entitlements', 'entitlement')
   .groupBy('user.id')
   .getRawMany();
+  
+  
+  
+  
+  
+  SELECT CAST((SELECT id AS [id], name AS [name] 
+FROM your_table_name
+FOR JSON PATH) AS NVARCHAR(MAX)) AS [json]
