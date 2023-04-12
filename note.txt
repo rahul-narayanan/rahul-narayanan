@@ -85,3 +85,24 @@ const usersWithEntitlements = await getRepository(User)
   SELECT CAST((SELECT id AS [id], name AS [name] 
 FROM your_table_name
 FOR JSON PATH) AS NVARCHAR(MAX)) AS [json]
+
+
+
+
+SELECT 
+    (SELECT id AS [id], name AS [name] 
+     FROM your_table_name
+     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+    ) AS [json]
+FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+
+
+
+
+SELECT 
+    JSON_QUERY(
+        CONCAT('{', STRING_AGG(CONCAT('"', id, '":"', name, '"'), ','), '}')
+    ) AS [json]
+FROM your_table_name
+
+
