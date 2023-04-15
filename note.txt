@@ -116,3 +116,9 @@ SELECT
         ), 1, 1, ''), '}')
     ) AS [dictionary]
 
+
+"Empower your team with custom permissions"
+"Take control of user access with ease"
+"Effortlessly manage permissions for your organization"
+"Secure your data with customizable permissions"
+"Custom permissions, customized security"
