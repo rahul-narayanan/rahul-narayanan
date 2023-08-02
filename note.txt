@@ -1,124 +1,80 @@
-import { Component, Input, OnInit } from '@angular/core';
-import { FormControl, FormGroupDirective, NgForm } from '@angular/forms';
-import { ErrorStateMatcher } from '@angular/material/core';
-
-@Component({
-  selector: 'app-input',
-  template: `
-    <mat-form-field>
-      <input matInput [formControl]="formControl" [formControlName]="formControlName" [type]="type" [placeholder]="placeholder">
-      <mat-error *ngIf="controlInvalid">
-        <div *ngIf="formControl.errors?.required">
-          {{requiredErrorMessage}}
-        </div>
-        <div *ngIf="formControl.errors?.pattern">
-          {{patternErrorMessage}}
-        </div>
-        <!-- Add additional error messages for other validation rules -->
-      </mat-error>
-    </mat-form-field>
-  `,
-})
-export class InputComponent implements OnInit {
-  @Input() formControl: FormControl;
-  @Input() formControlName: string;
-  @Input() type = 'text';
-  @Input() placeholder = '';
-
-  @Input() requiredErrorMessage = 'This field is required.';
-  @Input() patternErrorMessage = 'Invalid input.';
-
-  // Add additional error message inputs for other validation rules
-
-  controlInvalid = false;
-  matcher: ErrorStateMatcher;
-
-  constructor(private formGroupDirective: FormGroupDirective) {
-    this.matcher = new MyErrorStateMatcher();
+function sortObject(obj) {
+  if (typeof obj !== 'object' || obj === null) {
+    return obj;
   }
 
-  ngOnInit() {
-    if (!this.formControl && this.formControlName) {
-      this.formControl = this.formGroupDirective.form.get(this.formControlName) as FormControl;
+  if (Array.isArray(obj)) {
+    return obj.map(sortObject).sort();
+  }
+
+  return Object.keys(obj)
+    .sort()
+    .reduce((acc, key) => {
+      acc[key] = sortObject(obj[key]);
+      return acc;
+    }, {});
+}
+
+function isEquivalent(obj1, obj2) {
+  return JSON.stringify(sortObject(obj1)) === JSON.stringify(sortObject(obj2));
+}
+
+export function toMatchObjectIgnoringOrder(received, expected) {
+  const pass = isEquivalent(received, expected);
+  if (pass) {
+    return {
+      message: () => `Expected objects not to match ignoring order`,
+      pass: true,
+    };
+  } else {
+    return {
+      message: () => `Expected objects to match ignoring order`,
+      pass: false,
+    };
+  }
+}
+
+
+expect.extend({
+  toMatchObjectIgnoringOrder(received, expected) {
+    const pass = isEquivalent(received, expected);
+    if (pass) {
+      return {
+        message: () => `Expected objects not to match ignoring order`,
+        pass: true,
+      };
+    } else {
+      return {
+        message: () => `Expected objects to match ignoring order`,
+        pass: false,
+      };
     }
-  }
-}
+  },
+});
 
-class MyErrorStateMatcher implements ErrorStateMatcher {
-  isErrorState(control: FormControl | null, form: FormGroupDirective | NgForm | null): boolean {
-    const isSubmitted = form && form.submitted;
-    const isInvalid = !!(control && control.invalid && control.parent.dirty);
-    const isTouched = !!(control && control.touched);
+describe('YourController', () => {
+  let service: YourService;
 
-    return (isInvalid && (isSubmitted || isTouched));
-  }
-}
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+      providers: [YourService],
+    }).compile();
 
+    service = moduleRef.get<YourService>(YourService);
+  });
 
-
-
-const usersWithEntitlements = await getRepository(User)
-  .createQueryBuilder('user')
-  .select(['user.id', 'user.name', 'JSON_ARRAYAGG(JSON_OBJECT("entitlement_type", entitlement.type, "entitlement_value", entitlement.value)) AS entitlements'])
-  .leftJoin('user.entitlements', 'entitlement')
-  .groupBy('user.id')
-  .getRawMany();
-  
-  
-  
-  
-  
-  
-  
-  
-  const usersWithEntitlements = await getRepository(User)
-  .createQueryBuilder('user')
-  .select(['user.id', 'user.name', `CONCAT('[', STRING_AGG(CONCAT('{"entitlement_type":"', entitlement.type, '", "entitlement_value":"', entitlement.value, '"}'), ','), ']') AS entitlements`])
-  .leftJoin('user.entitlements', 'entitlement')
-  .groupBy('user.id')
-  .getRawMany();
-  
-  
-  
-  
-  
-  SELECT CAST((SELECT id AS [id], name AS [name] 
-FROM your_table_name
-FOR JSON PATH) AS NVARCHAR(MAX)) AS [json]
+  it('should return the API response', async () => {
+    const response = await service.callYourApi();
+    const expectedResponse = {
+      // Your expected response object here
+    };
+    expect(response).toMatchObjectIgnoringOrder(expectedResponse);
+  });
+});
+In the toMatchObjectIgnoringOrder custom matcher, we use the isEquivalent function to compare the received and expected objects after sorting their properties. The expect.extend function allows us to add the toMatchObjectIgnoringOrder matcher to the Jest's expect object, making it available for use in our tests.
 
 
 
 
-SELECT 
-    (SELECT id AS [id], name AS [name] 
-     FROM your_table_name
-     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
-    ) AS [json]
-FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
 
-
-
-
-SELECT 
-    JSON_QUERY(
-        CONCAT('{', STRING_AGG(CONCAT('"', id, '":"', name, '"'), ','), '}')
-    ) AS [json]
-FROM your_table_name
-
-
-
-SELECT 
-    JSON_QUERY(
-        CONCAT('{', STUFF((
-            SELECT CONCAT(',"', id, '":"', name, '"')
-            FROM your_table_name
-            FOR XML PATH('')
-        ), 1, 1, ''), '}')
-    ) AS [dictionary]
-
-
-"Empower your team with custom permissions"
-"Take control of user access with ease"
-"Effortlessly manage permissions for your organization"
-"Secure your data with customizable permissions"
-"Custom permissions, customized security"
