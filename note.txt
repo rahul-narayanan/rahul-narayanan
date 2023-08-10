@@ -1,80 +1,133 @@
-function sortObject(obj) {
-  if (typeof obj !== 'object' || obj === null) {
-    return obj;
-  }
+const { Client, createTLSOptions } = require('ldapts');
 
-  if (Array.isArray(obj)) {
-    return obj.map(sortObject).sort();
-  }
+async function checkUserGroupMembership(username, groupName) {
+  try {
+    const client = new Client({
+      url: 'ldaps://your-ad-server-url',
+      tlsOptions: createTLSOptions(),
+    });
 
-  return Object.keys(obj)
-    .sort()
-    .reduce((acc, key) => {
-      acc[key] = sortObject(obj[key]);
-      return acc;
-    }, {});
-}
+    await client.bind('your-username', 'your-password');
 
-function isEquivalent(obj1, obj2) {
-  return JSON.stringify(sortObject(obj1)) === JSON.stringify(sortObject(obj2));
-}
-
-export function toMatchObjectIgnoringOrder(received, expected) {
-  const pass = isEquivalent(received, expected);
-  if (pass) {
-    return {
-      message: () => `Expected objects not to match ignoring order`,
-      pass: true,
+    // Search for the user's DN
+    const userSearchFilter = `(sAMAccountName=${username})`;
+    const userSearchOptions = {
+      scope: 'sub',
+      filter: userSearchFilter,
+      attributes: ['dn'],
     };
-  } else {
-    return {
-      message: () => `Expected objects to match ignoring order`,
-      pass: false,
-    };
-  }
-}
 
+    const userSearchResult = await client.search('ou=Users,dc=example,dc=com', userSearchOptions);
+    const [userEntry] = userSearchResult.entries;
 
-expect.extend({
-  toMatchObjectIgnoringOrder(received, expected) {
-    const pass = isEquivalent(received, expected);
-    if (pass) {
-      return {
-        message: () => `Expected objects not to match ignoring order`,
-        pass: true,
-      };
-    } else {
-      return {
-        message: () => `Expected objects to match ignoring order`,
-        pass: false,
-      };
+    if (!userEntry) {
+      throw new Error('User not found');
     }
-  },
-});
 
-describe('YourController', () => {
-  let service: YourService;
-
-  beforeEach(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-      providers: [YourService],
-    }).compile();
-
-    service = moduleRef.get<YourService>(YourService);
-  });
-
-  it('should return the API response', async () => {
-    const response = await service.callYourApi();
-    const expectedResponse = {
-      // Your expected response object here
+    // Search for the group and check membership
+    const groupSearchFilter = `(cn=${groupName})`;
+    const groupSearchOptions = {
+      scope: 'sub',
+      filter: groupSearchFilter,
+      attributes: ['member'],
     };
-    expect(response).toMatchObjectIgnoringOrder(expectedResponse);
-  });
-});
-In the toMatchObjectIgnoringOrder custom matcher, we use the isEquivalent function to compare the received and expected objects after sorting their properties. The expect.extend function allows us to add the toMatchObjectIgnoringOrder matcher to the Jest's expect object, making it available for use in our tests.
+
+    const groupSearchResult = await client.search('ou=Groups,dc=example,dc=com', groupSearchOptions);
+    const [groupEntry] = groupSearchResult.entries;
+
+    if (!groupEntry) {
+      throw new Error('Group not found');
+    }
+
+    const userDN = userEntry.dn.toString();
+    const groupMembers = groupEntry.member || [];
+
+    const isMember = groupMembers.some(member => member.toString() === userDN);
+
+    return isMember;
+  } catch (error) {
+    throw error;
+  } finally {
+    await client.unbind();
+  }
+}
+
+(async () => {
+  try {
+    const username = 'user123';
+    const groupName = 'MyGroup';
+
+    const isMember = await checkUserGroupMembership(username, groupName);
+    console.log(`Is user ${username} a member of group ${groupName}? ${isMember}`);
+  } catch (error) {
+    console.error('Error:', error.message);
+  }
+})();
 
 
 
 
+**************
 
+
+
+const { Client, createTLSOptions } = require('ldapts');
+
+async function getUserGroupsStartingWithPrefix(username, prefix) {
+  try {
+    const client = new Client({
+      url: 'ldaps://your-ad-server-url',
+      tlsOptions: createTLSOptions(),
+    });
+
+    await client.bind('your-username', 'your-password');
+
+    // Search for the user's DN
+    const userSearchFilter = `(sAMAccountName=${username})`;
+    const userSearchOptions = {
+      scope: 'sub',
+      filter: userSearchFilter,
+      attributes: ['dn'],
+    };
+
+    const userSearchResult = await client.search('ou=Users,dc=example,dc=com', userSearchOptions);
+    const [userEntry] = userSearchResult.entries;
+
+    if (!userEntry) {
+      throw new Error('User not found');
+    }
+
+    const userDN = userEntry.dn.toString();
+
+    // Search for groups starting with the specified prefix
+    const groupSearchFilter = `(&(cn=${prefix}*)(member=${userDN}))`;
+    const groupSearchOptions = {
+      scope: 'sub',
+      filter: groupSearchFilter,
+      attributes: ['cn'],
+    };
+
+    const groupSearchResult = await client.search('ou=Groups,dc=example,dc=com', groupSearchOptions);
+    const groupEntries = groupSearchResult.entries;
+
+    const groupNames = groupEntries.map(entry => entry.cn.toString());
+
+    return groupNames;
+  } catch (error) {
+    throw error;
+  } finally {
+    await client.unbind();
+  }
+}
+
+(async () => {
+  try {
+    const username = 'user123';
+    const groupPrefix = 'APP_';
+
+    const userGroups = await getUserGroupsStartingWithPrefix(username, groupPrefix);
+    console.log(`Groups for user ${username} starting with ${groupPrefix}:`, userGroups);
+  } catch (error) {
+    console.error('Error:', error.message);
+  }
+})();
