@@ -157,3 +157,38 @@ Deployment Scripts:
 When deploying your NGINX configuration, ensure that the ENVIRONMENT environment variable is set correctly. You can use deployment scripts or tools to manage this. For example, when deploying to a specific environment, you would set the ENVIRONMENT variable to the appropriate value before starting NGINX.
 
 By following this approach, you can easily manage environment-specific NGINX configuration files without modifying the main nginx.conf file. This allows you to keep your configuration organized and makes it easy to switch between different environments during deployment.
+
+
+
+
+
+
+map $environment $backend_url {
+    default http://default-backend-url; # Set a default backend URL
+
+    dev http://dev-backend-url;
+    qa http://qa-backend-url;
+    prod http://prod-backend-url;
+}
+
+
+
+
+
+FROM nginx:latest
+
+ARG ENVIRONMENT
+ENV environment $ENVIRONMENT
+
+COPY /path/to/build /usr/share/nginx/html
+
+CMD envsubst '$environment' < /etc/nginx/nginx.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'
+
+
+
+
+
+CMD envsubst '$environment' < /etc/nginx/nginx.$environment.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'
+
+docker run -e ENVIRONMENT=dev -p 80:80 your-nginx-image
+
