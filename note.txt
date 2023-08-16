@@ -8,3 +8,6 @@ map $host $proxy_backend {
     location /api {
         proxy_pass http://$proxy_backend;
     }
+
+
+    add_header Cache-Control "no-cache, no-store, must-revalidate";
