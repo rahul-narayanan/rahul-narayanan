@@ -1,3 +1,10 @@
-location ~* ^https?://.*-dev\.apps\..*\.saifg\.rbc\.com {
-    # Your Nginx configuration here
-}
+map $host $proxy_backend {
+        default default_backend;
+        ~^https?://.*-dev\.apps\..*\.saifg\.rbc\.com$ backend_dev;
+        ~^https?://.*-qat\.apps\..*\.saifg\.rbc\.com$ backend_qat;
+        ~^https?://.*-uat\.apps\..*\.saifg\.rbc\.com$ backend_uat;
+    }
+
+    location /api {
+        proxy_pass http://$proxy_backend;
+    }
