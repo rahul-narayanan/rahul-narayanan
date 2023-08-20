@@ -68,7 +68,7 @@ const query = `
           GROUP BY c.client_id, client_name, is_company_admin
           FOR JSON AUTO
         ) AS clientsData
-      FROM user u
+      FROM [user] u
       WHERE u.user_email = :userEmail
       FOR JSON PATH
     `;
