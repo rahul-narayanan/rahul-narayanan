@@ -26,35 +26,36 @@ SELECT
                                     ue.user_id = u.user_id
                                     AND pr.product_role_id = pr_outer.product_role_id
                                     AND ucm.companyCompanyId = c.company_id
+                                    AND da.data_asset_view_name IS NOT NULL
                                 FOR JSON AUTO
                             ) AS data_assets
                         FROM
-                            user_entitlement ue_outer
+                            user_entitlement ue
                         LEFT JOIN
-                            entitlement_group eg_outer ON eg_outer.entitlement_group_id = ue_outer.entitlement_group_id
+                            entitlement_group eg ON eg.entitlement_group_id = ue.entitlement_group_id
                         LEFT JOIN
-                            product_role pr_outer ON eg_outer.product_role_id = pr_outer.product_role_id
+                            product_role pr ON eg.product_role_id = pr.product_role_id
                         LEFT JOIN
-                            data_asset da_outer ON pr_outer.product_role_id = da_outer.product_role_id
+                            product p ON pr.product_id = p.product_id
                         WHERE
-                            ue_outer.user_id = u.user_id
+                            ue.user_id = u.user_id
                             AND ucm.companyCompanyId = c.company_id
-                            AND da_outer.data_asset_view_name IS NOT NULL
-                        GROUP BY
-                            pr_outer.product_role_id, pr_outer.product_role_name, da_outer.data_asset_view_name
                         FOR JSON AUTO
-                    ) AS data_assets
+                    ) AS products
                 FROM
-                    user_entitlement ue
+                    user_entitlement ue_outer
                 LEFT JOIN
-                    entitlement_group eg ON eg.entitlement_group_id = ue.entitlement_group_id
+                    entitlement_group eg_outer ON eg_outer.entitlement_group_id = ue_outer.entitlement_group_id
                 LEFT JOIN
-                    product_role pr ON eg.product_role_id = pr.product_role_id
+                    product_role pr_outer ON eg_outer.product_role_id = pr_outer.product_role_id
                 LEFT JOIN
-                    product p ON pr.product_id = p.product_id
+                    data_asset da_outer ON pr_outer.product_role_id = da_outer.product_role_id
                 WHERE
-                    ue.user_id = u.user_id
+                    ue_outer.user_id = u.user_id
                     AND ucm.companyCompanyId = c.company_id
+                    AND da_outer.data_asset_view_name IS NOT NULL
+                GROUP BY
+                    pr_outer.product_role_id, pr_outer.product_role_name, da_outer.data_asset_view_name
                 FOR JSON AUTO
             ) AS products
         FROM
@@ -110,6 +111,7 @@ SELECT
                 WHERE
                     ue.user_id = u.user_id
                     AND pr.product_role_id = pr_outer.product_role_id
+                    AND da.data_asset_view_name IS NOT NULL
                 FOR JSON AUTO
             ) AS data_assets
         FROM
