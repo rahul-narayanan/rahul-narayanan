@@ -24,10 +24,11 @@ SELECT
             FROM user_entitlement ue_outer
             LEFT JOIN entitlement_group eg_outer ON eg_outer.entitlement_group_id = ue_outer.entitlement_group_id
             LEFT JOIN product_role pr_outer ON eg_outer.product_role_id = pr_outer.product_role_id
-            WHERE ue_outer.user_id = u.user_id AND ucm.companyCompanyId = c.company_id
-            GROUP BY pr_outer.product_role_id, pr_outer.product_role_name
+            LEFT JOIN data_asset da_outer ON pr_outer.product_role_id = da_outer.product_role_id
+            WHERE ue_outer.user_id = u.user_id AND ucm.companyCompanyId = c.company_id AND da_outer.data_asset_view_name IS NOT NULL
+            GROUP BY pr_outer.product_role_id, pr_outer.product_role_name, da_outer.data_asset_view_name
             FOR JSON AUTO
-          ) AS productRoles
+          ) AS data_assets
         FROM user_entitlement ue
         LEFT JOIN entitlement_group eg ON eg.entitlement_group_id = ue.entitlement_group_id
         LEFT JOIN product_role pr ON eg.product_role_id = pr.product_role_id
@@ -76,8 +77,9 @@ SELECT
     FROM user_entitlement ue_outer
     LEFT JOIN entitlement_group eg_outer ON eg_outer.entitlement_group_id = ue_outer.entitlement_group_id
     LEFT JOIN product_role pr_outer ON eg_outer.product_role_id = pr_outer.product_role_id
-    WHERE ue_outer.user_id = u.user_id
-    GROUP BY pr_outer.product_role_id, pr_outer.product_role_name
+    LEFT JOIN data_asset da_outer ON pr_outer.product_role_id = da_outer.product_role_id
+    WHERE ue_outer.user_id = u.user_id AND da_outer.data_asset_view_name IS NOT NULL
+    GROUP BY pr_outer.product_role_id, pr_outer.product_role_name, da_outer.data_asset_view_name
     FOR JSON AUTO
   ) AS productRoles
 FROM [user] u
