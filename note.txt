@@ -204,3 +204,28 @@ WHERE
     ucm.userUserId = u.user_id
 FOR JSON PATH
 
+
+
+(
+        SELECT
+            ag.group_name,
+            (
+                SELECT
+                    a.account_number
+                FROM
+                    account a
+                JOIN
+                    group_account_type_mapping agm ON a.account_number = agm.accountNumber
+                WHERE
+                    agm.groupId = ag.group_id
+                FOR JSON AUTO
+            ) AS account_numbers
+        FROM
+            user_group_mapping ugm
+        JOIN
+            [group] ag ON ugm.groupId = ag.group_id
+        WHERE
+            ugm.user_id = u.user_id
+            AND c.company_id = ucm.companyCompanyId
+        FOR JSON AUTO
+    ) AS accountGroups
