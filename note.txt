@@ -41,16 +41,21 @@ SELECT
             ) AS product_roles
         FROM
             product p
-        LEFT JOIN
-            user_entitlement ue ON ue.user_id = u.user_id
-        LEFT JOIN
-            entitlement_group eg ON eg.entitlement_group_id = ue.entitlement_group_id
-        LEFT JOIN
-            product_role pr ON eg.product_role_id = pr.product_role_id
         WHERE
-            c.company_id = ucm.companyCompanyId
-            AND p.product_id = pr.product_role_id
-            AND p.product_name IS NOT NULL
+            p.product_id IN (
+                SELECT DISTINCT
+                    pr.product_role_id
+                FROM
+                    user_entitlement ue
+                LEFT JOIN
+                    entitlement_group eg ON eg.entitlement_group_id = ue.entitlement_group_id
+                LEFT JOIN
+                    product_role pr ON eg.product_role_id = pr.product_role_id
+                WHERE
+                    ue.user_id = u.user_id
+                    AND c.company_id = ucm.companyCompanyId
+                    AND p.product_id = pr.product_role_id
+            )
         FOR JSON AUTO
     ) AS products
 FROM
