@@ -1,7 +1,7 @@
 SELECT
   (
     SELECT DISTINCT
-      client_id,
+      c.client_id,
       client_name,
       is_company_admin,
       (
@@ -9,6 +9,7 @@ SELECT
           p.product_name,
           (
             SELECT DISTINCT
+              pr_outer.product_role_id,
               pr_outer.product_role_name,
               (
                 SELECT DISTINCT
@@ -38,64 +39,47 @@ SELECT
     LEFT JOIN company c ON ucm.companyCompanyId = c.company_id
     WHERE ucm.userUserId = u.user_id
     FOR JSON AUTO
+  ) AS clientsBreakdownData,
+  (
+    SELECT DISTINCT
+      client_id,
+      client_name,
+      is_company_admin
+    FROM user_company_mapping ucm
+    LEFT JOIN company c ON ucm.companyCompanyId = c.company_id
+    WHERE ucm.userUserId = u.user_id
+    FOR JSON AUTO
   ) AS clientsList,
   (
     SELECT DISTINCT
-      c.client_id,
-      client_name,
-      is_company_admin,
+      p.product_name
+    FROM user_entitlement ue
+    LEFT JOIN entitlement_group eg ON eg.entitlement_group_id = ue.entitlement_group_id
+    LEFT JOIN product_role pr ON eg.product_role_id = pr.product_role_id
+    LEFT JOIN product p ON pr.product_id = p.product_id
+    WHERE ue.user_id = u.user_id
+    FOR JSON AUTO
+  ) AS products,
+  (
+    SELECT DISTINCT
+      pr_outer.product_role_name,
       (
         SELECT DISTINCT
-          p.product_name,
-          (
-            SELECT DISTINCT
-              pr_outer.product_role_name,
-              (
-                SELECT DISTINCT
-                  da.data_asset_view_name
-                FROM user_entitlement ue
-                LEFT JOIN entitlement_group eg ON eg.entitlement_group_id = ue.entitlement_group_id
-                LEFT JOIN product_role pr ON eg.product_role_id = pr.product_role_id
-                LEFT JOIN data_asset da ON pr.product_role_id = da.product_role_id
-                WHERE ue.user_id = u.user_id AND pr.product_role_id = pr_outer.product_role_id AND ucm.companyCompanyId = c.company_id
-                FOR JSON AUTO
-              ) AS data_assets
-            FROM user_entitlement ue_outer
-            LEFT JOIN entitlement_group eg_outer ON eg_outer.entitlement_group_id = ue_outer.entitlement_group_id
-            LEFT JOIN product_role pr_outer ON eg_outer.product_role_id = pr_outer.product_role_id
-            WHERE ue_outer.user_id = u.user_id AND ucm.companyCompanyId = c.company_id
-            GROUP BY pr_outer.product_role_id, pr_outer.product_role_name
-            FOR JSON AUTO
-          ) AS productRoles
+          da.data_asset_view_name
         FROM user_entitlement ue
         LEFT JOIN entitlement_group eg ON eg.entitlement_group_id = ue.entitlement_group_id
         LEFT JOIN product_role pr ON eg.product_role_id = pr.product_role_id
-        LEFT JOIN product p ON pr.product_id = p.product_id
-        WHERE ue.user_id = u.user_id AND ucm.companyCompanyId = c.company_id
+        LEFT JOIN data_asset da ON pr.product_role_id = da.product_role_id
+        WHERE ue.user_id = u.user_id AND pr.product_role_id = pr_outer.product_role_id
         FOR JSON AUTO
-      ) AS products,
-      (
-        SELECT DISTINCT
-          pr_outer.product_role_name,
-          (
-            SELECT DISTINCT
-              da.data_asset_view_name
-            FROM user_entitlement ue
-            LEFT JOIN entitlement_group eg ON eg.entitlement_group_id = ue.entitlement_group_id
-            LEFT JOIN product_role pr ON eg.product_role_id = pr.product_role_id
-            LEFT JOIN data_asset da ON pr.product_role_id = da.product_role_id
-            WHERE ue.user_id = u.user_id AND pr.product_role_id = pr_outer.product_role_id
-            FOR JSON AUTO
-          ) AS data_assets
-        FROM user_entitlement ue_outer
-        LEFT JOIN entitlement_group eg_outer ON eg_outer.entitlement_group_id = ue_outer.entitlement_group_id
-        LEFT JOIN product_role pr_outer ON eg_outer.product_role_id = pr_outer.product_role_id
-        WHERE ue_outer.user_id = u.user_id
-        GROUP BY pr_outer.product_role_id, pr_outer.product_role_name
-        FOR JSON AUTO
-      ) AS productRoles
-    FROM [user] u
-    WHERE u.user_email = 'aries.testuser@testcomp.com'
-    FOR JSON PATH
-  ) AS clientsBreakdownData
+      ) AS data_assets
+    FROM user_entitlement ue_outer
+    LEFT JOIN entitlement_group eg_outer ON eg_outer.entitlement_group_id = ue_outer.entitlement_group_id
+    LEFT JOIN product_role pr_outer ON eg_outer.product_role_id = pr_outer.product_role_id
+    WHERE ue_outer.user_id = u.user_id
+    GROUP BY pr_outer.product_role_id, pr_outer.product_role_name
+    FOR JSON AUTO
+  ) AS productRoles
+FROM [user] u
+WHERE u.user_email = 'aries.testuser@testcomp.com'
 FOR JSON PATH
