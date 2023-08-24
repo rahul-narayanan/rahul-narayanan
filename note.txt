@@ -1,69 +1,13 @@
 SELECT
-    c.client_id,
-    c.client_name,
-    ucm.is_company_admin,
-    (
-        SELECT DISTINCT
-            p.product_name,
-            (
-                SELECT DISTINCT
-                    pr_outer.product_role_name,
-                    (
-                        SELECT DISTINCT
-                            da.data_asset_view_name
-                        FROM
-                            user_entitlement ue
-                        LEFT JOIN
-                            entitlement_group eg ON eg.entitlement_group_id = ue.entitlement_group_id
-                        LEFT JOIN
-                            product_role pr ON eg.product_role_id = pr.product_role_id
-                        LEFT JOIN
-                            data_asset da ON pr.product_role_id = da.product_role_id
-                        WHERE
-                            ue.user_id = u.user_id
-                            AND c.company_id = ucm.companyCompanyId
-                            AND p.product_id = pr_outer.product_role_id
-                            AND pr.product_role_id = pr_outer.product_role_id
-                            AND da.data_asset_view_name IS NOT NULL
-                        FOR JSON AUTO
-                    ) AS data_assets
-                FROM
-                    user_entitlement ue_outer
-                LEFT JOIN
-                    entitlement_group eg_outer ON eg_outer.entitlement_group_id = ue_outer.entitlement_group_id
-                LEFT JOIN
-                    product_role pr_outer ON eg_outer.product_role_id = pr_outer.product_role_id
-                WHERE
-                    ue_outer.user_id = u.user_id
-                    AND c.company_id = ucm.companyCompanyId
-                    AND p.product_id = pr_outer.product_role_id
-                FOR JSON AUTO
-            ) AS product_roles
-        FROM
-            product p
-        WHERE
-            p.product_id IN (
-                SELECT DISTINCT
-                    pr.product_role_id
-                FROM
-                    user_entitlement ue
-                LEFT JOIN
-                    entitlement_group eg ON eg.entitlement_group_id = ue.entitlement_group_id
-                LEFT JOIN
-                    product_role pr ON eg.product_role_id = pr.product_role_id
-                WHERE
-                    ue.user_id = u.user_id
-                    AND c.company_id = ucm.companyCompanyId
-                    AND p.product_id = pr.product_role_id
-            )
-        FOR JSON AUTO
-    ) AS products
+    pr.product_role_name AS product_role,
+    JSON_QUERY(
+        '[' + STRING_AGG('"' + up.data_asset_view_name + '"', ',') + ']'
+    ) AS data_asset_names
 FROM
-    user_company_mapping ucm
-LEFT JOIN
-    company c ON ucm.companyCompanyId = c.company_id
-LEFT JOIN
-    [user] u ON ucm.userUserId = u.user_id
+    UserPayload up
+JOIN
+    product_role pr ON pr.product_role_name = up.product_role_name
 WHERE
-    u.user_email = 'your_user_email@example.com'
-FOR JSON PATH, INCLUDE_NULL_VALUES;
+    up.user_email = 'your_user_email_here'
+GROUP BY
+    pr.product_role_name;
