@@ -12,3 +12,20 @@
       AND up.product_name <> '' -- Filter out empty product names
   ) AS distinct_products
 ) AS products,
+
+
+
+SELECT 
+    up.user_email,
+    JSON_QUERY('{' + STRING_AGG(
+        '"' + up.product_role_name + '":' + JSON_QUERY('[' + STRING_AGG('"' + up.data_asset_view_name + '"', ', ') + ']')
+    , ',') + '}') AS productRoles
+FROM
+    [user_payload] up
+WHERE
+    up.user_email = '${userId}'
+    ${clientId ? ` AND up.client_id = '${clientId}'` : ''}
+    AND up.product_role_name IS NOT NULL
+    AND up.data_asset_view_name IS NOT NULL
+GROUP BY
+    up.user_email;
