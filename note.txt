@@ -29,3 +29,23 @@ WHERE
     AND up.data_asset_view_name IS NOT NULL
 GROUP BY
     up.user_email;
+
+
+
+SELECT
+    up.user_email,
+    JSON_QUERY('[' + STRING_AGG(
+        JSON_QUERY('{"product_role_name":"' + up.product_role_name + '","data_asset_view_names":' + 
+            '[' + STRING_AGG('"' + up.data_asset_view_name + '"', ', ') + ']'
+        + '}'),
+        ','
+    ) + ']') AS productRoles
+FROM
+    [user_payload] up
+WHERE
+    up.user_email = '${userId}'
+    ${clientId ? ` AND up.client_id = '${clientId}'` : ''}
+    AND up.product_role_name IS NOT NULL
+    AND up.data_asset_view_name IS NOT NULL
+GROUP BY
+    up.user_email, up.product_role_name;
