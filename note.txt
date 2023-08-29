@@ -1,51 +1,44 @@
-(
-  SELECT JSON_QUERY(
-    '[' + STRING_AGG('"' + product_name + '"', ',') + ']'
-  ) AS products
-  FROM (
-    SELECT DISTINCT up.product_name
-    FROM [user_payload] up
-    WHERE
-      up.user_email = '${userId}'
-      ${clientId ? ` AND up.client_id = '${clientId}'` : ''}
-      AND up.product_name IS NOT NULL
-      AND up.product_name <> '' -- Filter out empty product names
-  ) AS distinct_products
-) AS products,
-
-
-
-SELECT 
-    up.user_email,
-    JSON_QUERY('{' + STRING_AGG(
-        '"' + up.product_role_name + '":' + JSON_QUERY('[' + STRING_AGG('"' + up.data_asset_view_name + '"', ', ') + ']')
-    , ',') + '}') AS productRoles
-FROM
-    [user_payload] up
-WHERE
-    up.user_email = '${userId}'
-    ${clientId ? ` AND up.client_id = '${clientId}'` : ''}
-    AND up.product_role_name IS NOT NULL
-    AND up.data_asset_view_name IS NOT NULL
-GROUP BY
-    up.user_email;
-
-
-
 SELECT
-    up.user_email,
-    JSON_QUERY('[' + STRING_AGG(
-        JSON_QUERY('{"product_role_name":"' + up.product_role_name + '","data_asset_view_names":' + 
-            '[' + STRING_AGG('"' + up.data_asset_view_name + '"', ', ') + ']'
-        + '}'),
-        ','
-    ) + ']') AS productRoles
-FROM
-    [user_payload] up
-WHERE
-    up.user_email = '${userId}'
-    ${clientId ? ` AND up.client_id = '${clientId}'` : ''}
-    AND up.product_role_name IS NOT NULL
-    AND up.data_asset_view_name IS NOT NULL
-GROUP BY
-    up.user_email, up.product_role_name;
+    sub.client_id,
+    (
+        SELECT DISTINCT
+            up.client_id AS client_id,
+            up.client_name AS client_name,
+            up.is_company_admin AS is_company_admin
+        FROM
+            [user_payload] up
+        WHERE
+            up.user_email = '${userId}'
+            AND up.client_id = sub.client_id
+            AND up.is_company_admin IS NOT NULL
+        FOR JSON AUTO
+    ) AS clients,
+    (
+        SELECT DISTINCT
+            up.product_name
+        FROM
+            [user_payload] up
+        WHERE
+            up.user_email = '${userId}'
+            AND up.client_id = sub.client_id
+            AND up.product_name IS NOT NULL
+        FOR JSON AUTO
+    ) AS products,
+    (
+        SELECT DISTINCT
+            up.product_role_name AS product_role_name,
+            JSON_QUERY('[' + STRING_AGG('"' + up.data_asset_view_name + '"', ', ') + ']') AS data_asset_names
+        FROM
+            [user_payload] up
+        WHERE
+            up.user_email = '${userId}'
+            AND up.client_id = sub.client_id
+            AND up.product_role_name IS NOT NULL
+        GROUP BY
+            up.product_role_name
+        FOR JSON AUTO
+    ) AS productRoles
+FROM (
+    SELECT DISTINCT client_id
+    FROM [user_payload]
+) AS sub;
