@@ -1,3 +1,14 @@
-SELECT JSON_QUERY(
-    '[' + STRING_AGG(DISTINCT '"' + up.product_name + '"', ',') WITHIN GROUP (ORDER BY up.product_name) + ']'
+(
+  SELECT JSON_QUERY(
+    '[' + STRING_AGG('"' + product_name + '"', ',') + ']'
   ) AS products
+  FROM (
+    SELECT DISTINCT up.product_name
+    FROM [user_payload] up
+    WHERE
+      up.user_email = '${userId}'
+      ${clientId ? ` AND up.client_id = '${clientId}'` : ''}
+      AND up.product_name IS NOT NULL
+      AND up.product_name <> '' -- Filter out empty product names
+  ) AS distinct_products
+) AS products,
