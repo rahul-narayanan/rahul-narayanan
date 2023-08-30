@@ -1,13 +1,34 @@
-async upsertData(data: DeepPartial<UserPayload>[]): Promise<void> {
-    const columns = Object.keys(data[0]) as (keyof UserPayload)[];
-    const values = data.map(row => `(${columns.map(column => `'${row[column]}'`).join(', ')})`).join(', ');
+async upsert(data: DeepPartial<T>[]): Promise<void> {
+    if (!data.length) {
+      return;
+    }
 
+    const columns = Object.keys(data[0]) as (keyof T)[];
+    const values = data.map(row => {
+      const relatedSpecialId = row.related?.special_id || null; // Use null if related special_id is not provided
+      return `(${columns.map(column => {
+        if (column === 'related') {
+          return `'${relatedSpecialId}'`;
+        }
+        return this.escapeValue(row[column]);
+      }).join(', ')})`;
+    }).join(', ');
+
+    // Construct the MERGE query using columns and values
     const query = `
-      MERGE INTO user_payload AS target
+      MERGE INTO ${this.metadata.tableName} AS target
       USING (VALUES ${values}) AS source (${columns.join(', ')})
-      ON target.id = source.id
+      ON target.id = source.id -- Match using primary IDs
       WHEN MATCHED THEN
-        UPDATE SET ${columns.map(column => `target.${column} = source.${column}`).join(', ')}
+        UPDATE SET ${columns.map(column => {
+          if (column === 'related') {
+            return `target.related_id = (SELECT id FROM related WHERE special_id = source.related)`;
+          }
+          if (this.isForeignKey(column)) {
+            return `target.${column}_id = source.${column}`;
+          }
+          return `target.${column} = source.${column}`;
+        }).join(', ')}
       WHEN NOT MATCHED BY TARGET THEN
         INSERT (${columns.join(', ')})
         VALUES (${columns.map(column => `source.${column}`).join(', ')});
