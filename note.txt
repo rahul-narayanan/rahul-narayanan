@@ -1,44 +1,11 @@
-SELECT
-    sub.client_id,
-    (
-        SELECT DISTINCT
-            up.client_id AS client_id,
-            up.client_name AS client_name,
-            up.is_company_admin AS is_company_admin
-        FROM
-            [user_payload] up
-        WHERE
-            up.user_email = '${userId}'
-            AND up.client_id = sub.client_id
-            AND up.is_company_admin IS NOT NULL
-        FOR JSON AUTO
-    ) AS clients,
-    (
-        SELECT DISTINCT
-            up.product_name
-        FROM
-            [user_payload] up
-        WHERE
-            up.user_email = '${userId}'
-            AND up.client_id = sub.client_id
-            AND up.product_name IS NOT NULL
-        FOR JSON AUTO
-    ) AS products,
-    (
-        SELECT DISTINCT
-            up.product_role_name AS product_role_name,
-            JSON_QUERY('[' + STRING_AGG('"' + up.data_asset_view_name + '"', ', ') + ']') AS data_asset_names
-        FROM
-            [user_payload] up
-        WHERE
-            up.user_email = '${userId}'
-            AND up.client_id = sub.client_id
-            AND up.product_role_name IS NOT NULL
-        GROUP BY
-            up.product_role_name
-        FOR JSON AUTO
-    ) AS productRoles
-FROM (
-    SELECT DISTINCT client_id
-    FROM [user_payload]
-) AS sub;
+MERGE INTO user_payload AS target
+      USING (
+        VALUES
+          ${payloads.map(p => `(${p.id}, '${p.user_email}', ...)`) // Add all columns
+      ) AS source (id, user_email, ...)
+      ON target.id = source.id
+      WHEN MATCHED THEN
+        UPDATE SET target.column_to_update = source.column_to_update
+      WHEN NOT MATCHED THEN
+        INSERT (id, user_email, ...)
+        VALUES (source.id, source.user_email, ...);
