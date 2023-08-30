@@ -1,11 +1,17 @@
-MERGE INTO user_payload AS target
-      USING (
-        VALUES
-          ${payloads.map(p => `(${p.id}, '${p.user_email}', ...)`) // Add all columns
-      ) AS source (id, user_email, ...)
+async upsertData(data: DeepPartial<UserPayload>[]): Promise<void> {
+    const columns = Object.keys(data[0]) as (keyof UserPayload)[];
+    const values = data.map(row => `(${columns.map(column => `'${row[column]}'`).join(', ')})`).join(', ');
+
+    const query = `
+      MERGE INTO user_payload AS target
+      USING (VALUES ${values}) AS source (${columns.join(', ')})
       ON target.id = source.id
       WHEN MATCHED THEN
-        UPDATE SET target.column_to_update = source.column_to_update
-      WHEN NOT MATCHED THEN
-        INSERT (id, user_email, ...)
-        VALUES (source.id, source.user_email, ...);
+        UPDATE SET ${columns.map(column => `target.${column} = source.${column}`).join(', ')}
+      WHEN NOT MATCHED BY TARGET THEN
+        INSERT (${columns.join(', ')})
+        VALUES (${columns.map(column => `source.${column}`).join(', ')});
+    `;
+
+    await this.query(query);
+  }
