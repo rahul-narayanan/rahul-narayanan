@@ -1,38 +1,31 @@
-async upsert(data: DeepPartial<T>[]): Promise<void> {
-    if (!data.length) {
-      return;
+async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
+    const httpContext = context.switchToHttp();
+    const request = httpContext.getRequest();
+    const response = httpContext.getResponse();
+
+    // Generate a unique cache key based on the request URL and other factors
+    const cacheKey = this.generateCacheKey(request);
+
+    // Check if the data is already cached
+    const cachedData = await this.cachingService.get(cacheKey);
+
+    if (cachedData) {
+      // Data is available in the cache; return it as the response
+      return cachedData;
     }
 
-    const columns = Object.keys(data[0]) as (keyof T)[];
-    const values = data.map(row => {
-      const relatedSpecialId = row.related?.special_id || null; // Use null if related special_id is not provided
-      return `(${columns.map(column => {
-        if (column === 'related') {
-          return `'${relatedSpecialId}'`;
-        }
-        return this.escapeValue(row[column]);
-      }).join(', ')})`;
-    }).join(', ');
+    // Data is not in the cache; proceed with the request and cache the response
+    const handler = context.getHandler();
+    return next.handle().pipe(
+      tap(async (data) => {
+        // Cache the response data
+        await this.cachingService.set(cacheKey, data);
+      }),
+    );
+  }
 
-    // Construct the MERGE query using columns and values
-    const query = `
-      MERGE INTO ${this.metadata.tableName} AS target
-      USING (VALUES ${values}) AS source (${columns.join(', ')})
-      ON target.id = source.id -- Match using primary IDs
-      WHEN MATCHED THEN
-        UPDATE SET ${columns.map(column => {
-          if (column === 'related') {
-            return `target.related_id = (SELECT id FROM related WHERE special_id = source.related)`;
-          }
-          if (this.isForeignKey(column)) {
-            return `target.${column}_id = source.${column}`;
-          }
-          return `target.${column} = source.${column}`;
-        }).join(', ')}
-      WHEN NOT MATCHED BY TARGET THEN
-        INSERT (${columns.join(', ')})
-        VALUES (${columns.map(column => `source.${column}`).join(', ')});
-    `;
-
-    await this.query(query);
+  private generateCacheKey(request: any): string {
+    // Implement your own logic to generate a unique cache key based on the request
+    // For example, you can use the request URL or request parameters
+    return request.url;
   }
