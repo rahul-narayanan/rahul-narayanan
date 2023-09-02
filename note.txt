@@ -1,33 +1,18 @@
-intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const httpContext = context.switchToHttp();
-    const request = httpContext.getRequest();
-    const response = httpContext.getResponse();
-
-    // Generate a unique cache key based on the request URL and other factors
-    const cacheKey = this.generateCacheKey(request);
-
-    // Check if the data is already cached
-    return from(this.cachingService.get<CachedData>(cacheKey)).pipe(
-      mergeMap((cachedData) => {
-        if (cachedData) {
-          // Data is available in the cache; return it as the response
-          return of(cachedData);
-        }
-
-        // Data is not in the cache; proceed with the request and cache the response
-        return next.handle().pipe(
-          map((data) => {
-            // Cache the response data
-            this.cachingService.set(cacheKey, data);
-            return data;
-          }),
-        );
-      }),
-    );
-  }
-
-  private generateCacheKey(request: any): string {
-    // Implement your own logic to generate a unique cache key based on the request
-    // For example, you can use the request URL or request parameters
-    return request.url;
-  }
+/**
+ * CachingInterceptor
+ *
+ * This NestJS interceptor handles caching of API responses to improve performance
+ * by storing and retrieving data from a cache store, such as Redis.
+ *
+ * It intercepts incoming requests and checks if the corresponding response data
+ * is already cached. If cached data exists, it returns the cached data; otherwise,
+ * it proceeds with the request, caches the response data, and returns it.
+ *
+ * @remarks
+ * Make sure to configure the caching service and adjust the cache key generation
+ * according to your application's requirements.
+ *
+ * @example
+ * // Apply this interceptor globally or on specific routes/controllers.
+ * @UseInterceptors(CachingInterceptor)
+ */
