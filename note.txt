@@ -1,4 +1,4 @@
-async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
+intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const httpContext = context.switchToHttp();
     const request = httpContext.getRequest();
     const response = httpContext.getResponse();
@@ -7,19 +7,21 @@ async intercept(context: ExecutionContext, next: CallHandler): Promise<Observabl
     const cacheKey = this.generateCacheKey(request);
 
     // Check if the data is already cached
-    const cachedData = await this.cachingService.get(cacheKey);
+    return from(this.cachingService.get<CachedData>(cacheKey)).pipe(
+      mergeMap((cachedData) => {
+        if (cachedData) {
+          // Data is available in the cache; return it as the response
+          return of(cachedData);
+        }
 
-    if (cachedData) {
-      // Data is available in the cache; return it as the response
-      return cachedData;
-    }
-
-    // Data is not in the cache; proceed with the request and cache the response
-    const handler = context.getHandler();
-    return next.handle().pipe(
-      tap(async (data) => {
-        // Cache the response data
-        await this.cachingService.set(cacheKey, data);
+        // Data is not in the cache; proceed with the request and cache the response
+        return next.handle().pipe(
+          map((data) => {
+            // Cache the response data
+            this.cachingService.set(cacheKey, data);
+            return data;
+          }),
+        );
       }),
     );
   }
