@@ -1,18 +1,36 @@
-/**
- * CachingInterceptor
- *
- * This NestJS interceptor handles caching of API responses to improve performance
- * by storing and retrieving data from a cache store, such as Redis.
- *
- * It intercepts incoming requests and checks if the corresponding response data
- * is already cached. If cached data exists, it returns the cached data; otherwise,
- * it proceeds with the request, caches the response data, and returns it.
- *
- * @remarks
- * Make sure to configure the caching service and adjust the cache key generation
- * according to your application's requirements.
- *
- * @example
- * // Apply this interceptor globally or on specific routes/controllers.
- * @UseInterceptors(CachingInterceptor)
- */
+// custom-cache.service.ts
+
+import { Injectable } from '@nestjs/common';
+import * as Redis from 'ioredis';
+
+@Injectable()
+export class CustomCacheService {
+  private redisClient: Redis.Redis;
+
+  constructor() {
+    // Initialize the Redis client
+    this.redisClient = new Redis({
+      host: 'localhost', // Your Redis server host
+      port: 6379, // Your Redis server port
+      // Add other Redis configuration options if needed
+    });
+  }
+
+  async get(key: string): Promise<any> {
+    const cachedData = await this.redisClient.get(key);
+
+    if (cachedData) {
+      return JSON.parse(cachedData);
+    }
+
+    return null;
+  }
+
+  async set(key: string, value: any, ttlInSeconds: number = 3600): Promise<void> {
+    await this.redisClient.set(key, JSON.stringify(value), 'EX', ttlInSeconds);
+  }
+
+  async delete(key: string): Promise<void> {
+    await this.redisClient.del(key);
+  }
+}
