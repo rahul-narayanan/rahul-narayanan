@@ -1,4 +1,32 @@
-False Positive Reasoning:
-   1. The 'address' variable is solely used for UI purposes and does not interact with external data sources or perform any security-sensitive operations.
-   2. No user input or external data is directly incorporated into the 'address' variable without proper validation and sanitization.
-   3. Security measures, such as input validation and output encoding, are in place to protect against potential security threats.
+version: '3'
+services:
+  nestjs-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - azure-sql-edge
+    volumes:
+      - .:/app
+
+  azure-sql-edge:
+    image: mcr.microsoft.com/azure-sql-edge
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: YourStrongPassword
+      MSSQL_PID: Developer
+    ports:
+      - "1433:1433"
+    networks:
+      - backend
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
+networks:
+  backend:
+    driver: bridge
