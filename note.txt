@@ -1,50 +1,15 @@
-version: '3'
-services:
-  nestjs-app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    depends_on:
-      - azure-sql-edge
-      - redis
-    volumes:
-      - .:/app
-    environment:
-      # NestJS App
-      NODE_ENV: development
-
-      # Azure SQL Edge
-      SQL_SERVER_SA_PASSWORD: YourSqlServerPassword
-      SQL_SERVER_USERNAME: YourSqlServerUsername
-      SQL_SERVER_USER_PASSWORD: YourSqlServerUserPassword
-
-      # Redis
-      REDIS_PASSWORD: YourRedisPassword
-
-  azure-sql-edge:
-    image: mcr.microsoft.com/azure-sql-edge
-    environment:
-      ACCEPT_EULA: "Y"
-      SA_PASSWORD: ${SQL_SERVER_SA_PASSWORD}
-      MSSQL_PID: Developer
-      MSSQL_SA_PASSWORD: ${SQL_SERVER_SA_PASSWORD}
-      MSSQL_USER: ${SQL_SERVER_USERNAME}
-      MSSQL_PASSWORD: ${SQL_SERVER_USER_PASSWORD}
-    ports:
-      - "1433:1433"
-    networks:
-      - backend
-
-  redis:
-    image: redis:latest
-    command: redis-server --requirepass ${REDIS_PASSWORD}
-    ports:
-      - "6379:6379"
-    networks:
-      - backend
-
-networks:
-  backend:
-    driver: bridge
+version: 1
+agent:
+  name: custom-build-agent
+  description: Custom Build Agent
+  resources:
+    requests:
+      memory: "4Gi"  # Adjust memory as needed
+    limits:
+      memory: "8Gi"  # Adjust memory as needed
+  commands:
+    - name: build
+      description: Build Angular App
+      image: your-registry/custom-build-agent:latest  # Replace with your Docker image location
+      command: ["npm", "run", "build"]
+      # Add any additional environment variables or mounts as needed
