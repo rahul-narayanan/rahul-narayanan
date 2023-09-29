@@ -1,15 +1,8 @@
-version: 1
-agent:
-  name: custom-build-agent
-  description: Custom Build Agent
-  resources:
-    requests:
-      memory: "4Gi"  # Adjust memory as needed
-    limits:
-      memory: "8Gi"  # Adjust memory as needed
-  commands:
-    - name: build
-      description: Build Angular App
-      image: your-registry/custom-build-agent:latest  # Replace with your Docker image location
-      command: ["npm", "run", "build"]
-      # Add any additional environment variables or mounts as needed
+{
+  "extends": "./tsconfig.json", // Extend your main tsconfig.json
+  "include": ["src/**/*.ts"], // Adjust this to match your source code location
+  "exclude": ["node_modules", "build", "dist"], // Exclude build output directories
+  "compilerOptions": {
+    // Add any script-specific options here
+  }
+}
