@@ -1,65 +1,83 @@
-// app.state.ts
-
 import { State, Action, StateContext } from '@ngxs/store';
 
-// Define the structure of your state
-export interface AppStateModel {
-  counter: number;
+export interface UserStateModel {
+  user: User | null;
 }
 
-@State<AppStateModel>({
-  name: 'app',
+export class User {
+  constructor(public id: number, public username: string) {}
+}
+
+@State<UserStateModel>({
+  name: 'user',
   defaults: {
-    counter: 0,
+    user: null,
   },
 })
-export class AppState {
-  // Define actions to modify the state
-  @Action(Increment)
-  increment({ getState, patchState }: StateContext<AppStateModel>) {
-    const state = getState();
-    patchState({
-      counter: state.counter + 1,
-    });
+export class UserState {
+  @Action(SetCurrentUser)
+  setCurrentUser({ patchState }: StateContext<UserStateModel>, { payload }: SetCurrentUser) {
+    patchState({ user: payload });
   }
 }
 
-// Define actions to interact with the state
-export class Increment {
-  static readonly type = '[App] Increment';
+export class SetCurrentUser {
+  static readonly type = '[User] Set Current User';
+  constructor(public payload: User) {}
 }
 
 
+// user.service.ts
 
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { User } from './user.state';
+import { Store } from '@ngxs/store';
+import { SetCurrentUser } from './user.state';
 
+@Injectable({
+  providedIn: 'root',
+})
+export class UserService {
+  constructor(private http: HttpClient, private store: Store) {}
 
-
+  getCurrentUser() {
+    // Make an API request to fetch the current user
+    this.http.get<User>('/api/current-user').subscribe((user) => {
+      // Dispatch the action to set the current user in the state
+      this.store.dispatch(new SetCurrentUser(user));
+    });
+  }
+}
 
 
 
 
 // app.component.ts
 
-import { Component } from '@angular/core';
-import { Store } from '@ngxs/store';
-import { Increment } from './app.state'; // Import the action
+import { Component, OnInit } from '@angular/core';
+import { UserService } from './user.service';
+import { Select } from '@ngxs/store';
+import { UserState } from './user.state';
+import { Observable } from 'rxjs';
+import { User } from './user.state';
 
 @Component({
   selector: 'app-root',
   template: `
     <div>
-      <p>Counter: {{ counter$ | async }}</p>
-      <button (click)="increment()">Increment</button>
+      <p *ngIf="currentUser$ | async as currentUser">Welcome, {{ currentUser.username }}!</p>
     </div>
   `,
 })
-export class AppComponent {
-  counter$ = this.store.select((state) => state.app.counter); // Select the counter from the state
+export class AppComponent implements OnInit {
+  @Select(UserState.user) currentUser$: Observable<User | null>;
 
-  constructor(private store: Store) {}
+  constructor(private userService: UserService) {}
 
-  increment() {
-    this.store.dispatch(new Increment()); // Dispatch the Increment action
+  ngOnInit() {
+    // Call the service to fetch the current user
+    this.userService.getCurrentUser();
   }
 }
 
@@ -67,24 +85,3 @@ export class AppComponent {
 
 
 
-
-// app.module.ts
-
-import { NgModule } from '@angular/core';
-import { BrowserModule } from '@angular/platform-browser';
-import { NgxsModule } from '@ngxs/store';
-import { NgxsLoggerPluginModule } from '@ngxs/logger-plugin';
-import { environment } from '../environments/environment';
-import { AppComponent } from './app.component';
-import { AppState } from './app.state';
-
-@NgModule({
-  declarations: [AppComponent],
-  imports: [
-    BrowserModule,
-    NgxsModule.forRoot([AppState]),
-    NgxsLoggerPluginModule.forRoot(),
-  ],
-  bootstrap: [AppComponent],
-})
-export class AppModule {}
