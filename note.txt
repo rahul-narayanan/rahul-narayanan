@@ -1,87 +1,16 @@
-import { State, Action, StateContext } from '@ngxs/store';
+# Check the exit code of the previous command
+if [ $? -eq 0 ]; then
+  # The first command succeeded (exit code 0)
+  echo "Command 1 succeeded."
+  
+  # Run another command based on success
+  command2
+else
+  # The first command failed (non-zero exit code)
+  echo "Command 1 failed."
 
-export interface UserStateModel {
-  user: User | null;
-}
+  # Run a different command or take other actions based on failure
+  command3
+fi
 
-export class User {
-  constructor(public id: number, public username: string) {}
-}
-
-@State<UserStateModel>({
-  name: 'user',
-  defaults: {
-    user: null,
-  },
-})
-export class UserState {
-  @Action(SetCurrentUser)
-  setCurrentUser({ patchState }: StateContext<UserStateModel>, { payload }: SetCurrentUser) {
-    patchState({ user: payload });
-  }
-}
-
-export class SetCurrentUser {
-  static readonly type = '[User] Set Current User';
-  constructor(public payload: User) {}
-}
-
-
-// user.service.ts
-
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { User } from './user.state';
-import { Store } from '@ngxs/store';
-import { SetCurrentUser } from './user.state';
-
-@Injectable({
-  providedIn: 'root',
-})
-export class UserService {
-  constructor(private http: HttpClient, private store: Store) {}
-
-  getCurrentUser() {
-    // Make an API request to fetch the current user
-    this.http.get<User>('/api/current-user').subscribe((user) => {
-      // Dispatch the action to set the current user in the state
-      this.store.dispatch(new SetCurrentUser(user));
-    });
-  }
-}
-
-
-
-
-// app.component.ts
-
-import { Component, OnInit } from '@angular/core';
-import { UserService } from './user.service';
-import { Select } from '@ngxs/store';
-import { UserState } from './user.state';
-import { Observable } from 'rxjs';
-import { User } from './user.state';
-
-@Component({
-  selector: 'app-root',
-  template: `
-    <div>
-      <p *ngIf="currentUser$ | async as currentUser">Welcome, {{ currentUser.username }}!</p>
-    </div>
-  `,
-})
-export class AppComponent implements OnInit {
-  @Select(UserState.user) currentUser$: Observable<User | null>;
-
-  constructor(private userService: UserService) {}
-
-  ngOnInit() {
-    // Call the service to fetch the current user
-    this.userService.getCurrentUser();
-  }
-}
-
-
-
-
-
+# ... continue with the rest of the pre-commit hook
