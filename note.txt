@@ -1,27 +1,6 @@
-# Function to run the lint-staged command
-runLintStaged() {
-  # Run lint-staged and capture the output
-  output=$(npx lint-staged 2>&1)
-}
-
-# Run lint-staged initially
-runLintStaged
-
-# Check the exit code of the lint-staged command
-if [ $? -ne 0 ]; then
-  # If lint-staged fails, set $NVM_DIR and retry
-  export NVM_DIR="/path/to/your/nvm"
-  . "$NVM_DIR/nvm.sh"  # Source nvm.sh to activate NVM
-
-  # Run lint-staged again after setting $NVM_DIR
-  runLintStaged
-
-  # Check the exit code of the retry
-  if [ $? -ne 0 ]; then
-    # Handle the error if the retry also fails
-    echo "Linting failed again. You might need to take additional action."
-    exit 1
-  fi
-fi
-
-# The linting succeeded
+ return this.createQueryBuilder('group')
+      .leftJoinAndSelect('group.accounts', 'account')
+      .addSelect('(SELECT COUNT(*) FROM group_account ga WHERE ga.groupId = group.id) AS accountCount')
+      .orderBy('group.id', 'DESC') // Adjust your ordering as needed
+      .limit(50)
+      .getMany();
