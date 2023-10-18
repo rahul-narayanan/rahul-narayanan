@@ -1,6 +1,29 @@
- return this.createQueryBuilder('group')
-      .leftJoinAndSelect('group.accounts', 'account')
-      .addSelect('(SELECT COUNT(*) FROM group_account ga WHERE ga.groupId = group.id) AS accountCount')
-      .orderBy('group.id', 'DESC') // Adjust your ordering as needed
-      .limit(50)
-      .getMany();
+import { Injectable } from '@angular/core';
+import {
+  CanActivate,
+  ActivatedRouteSnapshot,
+  RouterStateSnapshot,
+  Router,
+} from '@angular/router';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class NoSameRouteGuard implements CanActivate {
+  constructor(private router: Router) {}
+
+  canActivate(
+    route: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot
+  ): boolean {
+    const currentRoute = state.url;
+
+    // Check if the user is trying to navigate to the same route
+    if (this.router.url === currentRoute) {
+      // Prevent navigation to the same route
+      return false;
+    }
+
+    return true;
+  }
+}
