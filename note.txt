@@ -1,29 +1,27 @@
-import { Injectable } from '@angular/core';
-import {
-  CanActivate,
-  ActivatedRouteSnapshot,
-  RouterStateSnapshot,
-  Router,
-} from '@angular/router';
+import { Company } from './company.entity';
 
-@Injectable({
-  providedIn: 'root',
-})
-export class NoSameRouteGuard implements CanActivate {
-  constructor(private router: Router) {}
-
-  canActivate(
-    route: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
-  ): boolean {
-    const currentRoute = state.url;
-
-    // Check if the user is trying to navigate to the same route
-    if (this.router.url === currentRoute) {
-      // Prevent navigation to the same route
-      return false;
-    }
-
-    return true;
+@EntityRepository(Company)
+export class CompanyRepository extends Repository<Company> {
+  async getCompaniesWithCounts(): Promise<Company[]> {
+    return this.createQueryBuilder('company')
+      .addSelect((subQuery) => {
+        subQuery
+          .select('COUNT(user.id)', 'userCount')
+          .from('user', 'user')
+          .where('user.companyId = company.id');
+      }, 'userCount')
+      .addSelect((subQuery) => {
+        subQuery
+          .select('COUNT(account.id)', 'accountCount')
+          .from('account', 'account')
+          .where('account.companyId = company.id');
+      }, 'accountCount')
+      .addSelect((subQuery) => {
+        subQuery
+          .select('COUNT(group.id)', 'groupCount')
+          .from('group', 'group')
+          .where('group.companyId = company.id');
+      }, 'groupCount')
+      .getRawMany();
   }
 }
