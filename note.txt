@@ -83,3 +83,27 @@ const checkForSpecialCharacters = (obj: any) => {
         }
       };
 
+
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common';
+import { Response } from 'express';
+
+@Catch()
+export class MethodNotAllowedFilter implements ExceptionFilter {
+  catch(exception: Error, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+
+    if (exception instanceof HttpException && exception.getStatus() === 404) {
+      response.status(405).json({
+        statusCode: 405,
+        message: 'Method Not Allowed',
+      });
+    } else {
+      // Handle other exceptions as needed
+      response.status(500).json({
+        statusCode: 500,
+        message: 'Internal Server Error',
+      });
+    }
+  }
+}
