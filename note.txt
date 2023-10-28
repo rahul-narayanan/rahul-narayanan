@@ -56,3 +56,15 @@ function sanitizeString(input) {
   return sanitizedInput;
 }
 
+function sanitizeXSS(input) {
+  // Replace characters that can be vulnerable to XSS with their HTML entities
+  const sanitizedInput = input
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/&/g, '&amp;');
+
+  return sanitizedInput;
+}
+
