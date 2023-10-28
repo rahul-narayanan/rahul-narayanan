@@ -49,3 +49,10 @@ export const sanitizeHtmlProperty = (value: string): string => {
 };
 
 
+function sanitizeString(input) {
+  // Remove <script> tags and their contents
+  const sanitizedInput = input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+
+  return sanitizedInput;
+}
+
