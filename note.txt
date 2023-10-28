@@ -25,3 +25,27 @@ export class CompanyRepository extends Repository<Company> {
       .getRawMany();
   }
 }
+
+
+
+
+// html-sanitize.decorator.ts
+import { SetMetadata } from '@nestjs/common';
+import * as DOMPurify from 'dompurify';
+
+export const HtmlSanitize = (property: string) => {
+  return (target, key) => {
+    SetMetadata('htmlSanitizeProperty', property)(target, key);
+  };
+};
+
+export const getHtmlSanitizeProperty = (target: any, key: string) => {
+  const property = Reflect.getMetadata('htmlSanitizeProperty', target, key);
+  return property || null;
+};
+
+export const sanitizeHtmlProperty = (value: string): string => {
+  return DOMPurify.sanitize(value);
+};
+
+
