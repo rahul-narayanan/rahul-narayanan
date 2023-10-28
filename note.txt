@@ -68,3 +68,18 @@ function sanitizeXSS(input) {
   return sanitizedInput;
 }
 
+
+const checkForSpecialCharacters = (obj: any) => {
+        for (const key in obj) {
+          if (typeof obj[key] === 'string') {
+            if (specialCharacterPattern.test(obj[key])) {
+              // If a special character is found, throw the custom exception
+              throw new SpecialCharacterException();
+            }
+          } else if (typeof obj[key] === 'object') {
+            // Recursively check nested objects
+            checkForSpecialCharacters(obj[key]);
+          }
+        }
+      };
+
