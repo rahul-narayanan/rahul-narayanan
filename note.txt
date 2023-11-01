@@ -1,109 +1,38 @@
-import { Company } from './company.entity';
-
-@EntityRepository(Company)
-export class CompanyRepository extends Repository<Company> {
-  async getCompaniesWithCounts(): Promise<Company[]> {
-    return this.createQueryBuilder('company')
-      .addSelect((subQuery) => {
-        subQuery
-          .select('COUNT(user.id)', 'userCount')
-          .from('user', 'user')
-          .where('user.companyId = company.id');
-      }, 'userCount')
-      .addSelect((subQuery) => {
-        subQuery
-          .select('COUNT(account.id)', 'accountCount')
-          .from('account', 'account')
-          .where('account.companyId = company.id');
-      }, 'accountCount')
-      .addSelect((subQuery) => {
-        subQuery
-          .select('COUNT(group.id)', 'groupCount')
-          .from('group', 'group')
-          .where('group.companyId = company.id');
-      }, 'groupCount')
-      .getRawMany();
-  }
-}
-
-
-
-
-// html-sanitize.decorator.ts
-import { SetMetadata } from '@nestjs/common';
-import * as DOMPurify from 'dompurify';
-
-export const HtmlSanitize = (property: string) => {
-  return (target, key) => {
-    SetMetadata('htmlSanitizeProperty', property)(target, key);
-  };
-};
-
-export const getHtmlSanitizeProperty = (target: any, key: string) => {
-  const property = Reflect.getMetadata('htmlSanitizeProperty', target, key);
-  return property || null;
-};
-
-export const sanitizeHtmlProperty = (value: string): string => {
-  return DOMPurify.sanitize(value);
-};
-
-
-function sanitizeString(input) {
-  // Remove <script> tags and their contents
-  const sanitizedInput = input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-
-  return sanitizedInput;
-}
-
-function sanitizeXSS(input) {
-  // Replace characters that can be vulnerable to XSS with their HTML entities
-  const sanitizedInput = input
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-    .replace(/&/g, '&amp;');
-
-  return sanitizedInput;
-}
-
-
-const checkForSpecialCharacters = (obj: any) => {
-        for (const key in obj) {
-          if (typeof obj[key] === 'string') {
-            if (specialCharacterPattern.test(obj[key])) {
-              // If a special character is found, throw the custom exception
-              throw new SpecialCharacterException();
-            }
-          } else if (typeof obj[key] === 'object') {
-            // Recursively check nested objects
-            checkForSpecialCharacters(obj[key]);
-          }
-        }
-      };
-
-
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common';
+import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Response } from 'express';
 
-@Catch()
-export class MethodNotAllowedFilter implements ExceptionFilter {
-  catch(exception: Error, host: ArgumentsHost) {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-
-    if (exception instanceof HttpException && exception.getStatus() === 404) {
-      response.status(405).json({
-        statusCode: 405,
-        message: 'Method Not Allowed',
-      });
-    } else {
-      // Handle other exceptions as needed
-      response.status(500).json({
-        statusCode: 500,
-        message: 'Internal Server Error',
-      });
+@Injectable()
+export class EscapeJsonMiddleware implements NestMiddleware {
+  use(req: any, res: Response, next: () => void) {
+    if (res.jsonData) {
+      res.jsonData = this.escapeJson(res.jsonData);
     }
+    next();
+  }
+
+  private escapeJson(data: any): any {
+    if (typeof data === 'string') {
+      return this.escapeString(data);
+    } else if (typeof data === 'object') {
+      if (Array.isArray(data)) {
+        return data.map((item) => this.escapeJson(item));
+      } else {
+        const escapedData: any = {};
+        for (const key in data) {
+          if (data.hasOwnProperty(key)) {
+            escapedData[key] = this.escapeJson(data[key]);
+          }
+        }
+        return escapedData;
+      }
+    }
+    return data;
+  }
+
+  private escapeString(input: string): string {
+    // Implement your custom escaping logic here
+    // For basic HTML entity encoding:
+    input = input.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return input;
   }
 }
