@@ -1,14 +1,37 @@
-location / {
-            if ($request_uri ~ ^/proxy/my-app(/?.*)$) {
-                set $proxy_my_app_uri $1;
+events {
+    worker_connections 1024;
+}
 
-                if ($proxy_my_app_uri ~ ^/proxy/my-app$) {
-                    rewrite ^/proxy/my-app$ /proxy/my-app/ permanent;
-                }
+http {
+    include mime.types;
+    default_type application/octet-stream;
 
-                rewrite ^/proxy/my-app(/?.*)$ $proxy_my_app_uri break;
-            }
+    map $uri $new_uri {
+        ~^/proxy/my-app$ /proxy/my-app/;
+        ~^/proxy/my-app/(.*)$ /$1;
+        default $uri;
+    }
+
+    # Set your server block
+    server {
+        listen 80;
+        server_name your_domain.com; # Replace with your domain or server IP
+
+        # Rewrite for /proxy/my-app and add trailing slash if needed
+        location / {
+            rewrite ^ $new_uri break;
 
             # Your existing / location configuration...
             # ...
         }
+
+        # Your existing /api location configuration...
+        # ...
+
+        # Your existing / location configuration...
+        # ...
+
+        # Other configurations if needed
+        # ...
+    }
+}
