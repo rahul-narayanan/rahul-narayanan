@@ -1,38 +1,14 @@
-import { Injectable, NestMiddleware } from '@nestjs/common';
-import { Response } from 'express';
+location / {
+            if ($request_uri ~ ^/proxy/my-app(/?.*)$) {
+                set $proxy_my_app_uri $1;
 
-@Injectable()
-export class EscapeJsonMiddleware implements NestMiddleware {
-  use(req: any, res: Response, next: () => void) {
-    if (res.jsonData) {
-      res.jsonData = this.escapeJson(res.jsonData);
-    }
-    next();
-  }
+                if ($proxy_my_app_uri ~ ^/proxy/my-app$) {
+                    rewrite ^/proxy/my-app$ /proxy/my-app/ permanent;
+                }
 
-  private escapeJson(data: any): any {
-    if (typeof data === 'string') {
-      return this.escapeString(data);
-    } else if (typeof data === 'object') {
-      if (Array.isArray(data)) {
-        return data.map((item) => this.escapeJson(item));
-      } else {
-        const escapedData: any = {};
-        for (const key in data) {
-          if (data.hasOwnProperty(key)) {
-            escapedData[key] = this.escapeJson(data[key]);
-          }
+                rewrite ^/proxy/my-app(/?.*)$ $proxy_my_app_uri break;
+            }
+
+            # Your existing / location configuration...
+            # ...
         }
-        return escapedData;
-      }
-    }
-    return data;
-  }
-
-  private escapeString(input: string): string {
-    // Implement your custom escaping logic here
-    // For basic HTML entity encoding:
-    input = input.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    return input;
-  }
-}
