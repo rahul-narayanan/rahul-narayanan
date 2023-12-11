@@ -1,19 +1,22 @@
+const originalWrite = res.write;
+    const originalEnd = res.end;
 
-@Injectable()
-export class AttachResponseToRequestMiddleware implements NestMiddleware {
-  use(req: Request, res: Response, next: NextFunction) {
-    const originalSend = res.send;
+    const chunks: any[] = [];
 
-    // Override the default send method of the response object
-    res.send = function (body: any) {
-      // Attach the response data to the request object
-      req.responseData = body; // You can attach any specific data you want here
-
-      // Call the original send method to send the response
-      originalSend.call(this, body);
+    res.write = function (chunk: any) {
+      chunks.push(chunk);
+      originalWrite.apply(res, arguments);
     };
 
-    // Continue processing the request
+    res.end = function (chunk: any) {
+      if (chunk) {
+        chunks.push(chunk);
+      }
+
+      const body = Buffer.concat(chunks).toString('utf8');
+      req.responseData = JSON.parse(body); // Assuming the response is JSON data
+
+      originalEnd.apply(res, arguments);
+    };
+
     next();
-  }
-}
