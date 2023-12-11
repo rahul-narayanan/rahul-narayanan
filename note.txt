@@ -1,37 +1,19 @@
-events {
-    worker_connections 1024;
-}
 
-http {
-    include mime.types;
-    default_type application/octet-stream;
+@Injectable()
+export class AttachResponseToRequestMiddleware implements NestMiddleware {
+  use(req: Request, res: Response, next: NextFunction) {
+    const originalSend = res.send;
 
-    map $uri $new_uri {
-        ~^/proxy/my-app$ /proxy/my-app/;
-        ~^/proxy/my-app/(.*)$ /$1;
-        default $uri;
-    }
+    // Override the default send method of the response object
+    res.send = function (body: any) {
+      // Attach the response data to the request object
+      req.responseData = body; // You can attach any specific data you want here
 
-    # Set your server block
-    server {
-        listen 80;
-        server_name your_domain.com; # Replace with your domain or server IP
+      // Call the original send method to send the response
+      originalSend.call(this, body);
+    };
 
-        # Rewrite for /proxy/my-app and add trailing slash if needed
-        location / {
-            rewrite ^ $new_uri break;
-
-            # Your existing / location configuration...
-            # ...
-        }
-
-        # Your existing /api location configuration...
-        # ...
-
-        # Your existing / location configuration...
-        # ...
-
-        # Other configurations if needed
-        # ...
-    }
+    // Continue processing the request
+    next();
+  }
 }
