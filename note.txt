@@ -1,22 +1,16 @@
-const originalWrite = res.write;
-    const originalEnd = res.end;
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
-    const chunks: any[] = [];
-
-    res.write = function (chunk: any) {
-      chunks.push(chunk);
-      originalWrite.apply(res, arguments);
-    };
-
-    res.end = function (chunk: any) {
-      if (chunk) {
-        chunks.push(chunk);
-      }
-
-      const body = Buffer.concat(chunks).toString('utf8');
-      req.responseData = JSON.parse(body); // Assuming the response is JSON data
-
-      originalEnd.apply(res, arguments);
-    };
-
-    next();
+@Injectable()
+export class AttachResponseToRequestInterceptor implements NestInterceptor {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    return next.handle().pipe(
+      map((data) => {
+        const request = context.switchToHttp().getRequest();
+        request.responseData = data; // Attach the response data to the request object
+        return data; // Return the original response data
+      }),
+    );
+  }
+}
