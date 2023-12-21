@@ -1,15 +1,8 @@
-function executeDynamicQuery(entityManager: EntityManager, conditions: Record<string, any>): Promise<any> {
-  // Generate placeholders for dynamic conditions
-  const placeholders = Object.keys(conditions).map((key, index) => `${key} = $${index + 1}`).join(' AND ');
-
-  // Build the query dynamically with the placeholders
-  const query = `SELECT * FROM your_table WHERE ${placeholders}`;
-
-  // Extract values from the conditions object
-  const values = Object.values(conditions);
-
-  // Execute the parameterized query
-  const result = await entityManager.query(query, values);
-
-  return result;
-}
+const { placeholders, values } = Object.keys(conditions).reduce(
+    (acc, key, index) => {
+      acc.placeholders.push(`${key} = $${index + 1}`);
+      acc.values.push(conditions[key]);
+      return acc;
+    },
+    { placeholders: [] as string[], values: [] as any[] }
+  );
