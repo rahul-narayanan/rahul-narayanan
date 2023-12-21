@@ -1,16 +1,15 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+function executeDynamicQuery(entityManager: EntityManager, conditions: Record<string, any>): Promise<any> {
+  // Generate placeholders for dynamic conditions
+  const placeholders = Object.keys(conditions).map((key, index) => `${key} = $${index + 1}`).join(' AND ');
 
-@Injectable()
-export class AttachResponseToRequestInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    return next.handle().pipe(
-      map((data) => {
-        const request = context.switchToHttp().getRequest();
-        request.responseData = data; // Attach the response data to the request object
-        return data; // Return the original response data
-      }),
-    );
-  }
+  // Build the query dynamically with the placeholders
+  const query = `SELECT * FROM your_table WHERE ${placeholders}`;
+
+  // Extract values from the conditions object
+  const values = Object.values(conditions);
+
+  // Execute the parameterized query
+  const result = await entityManager.query(query, values);
+
+  return result;
 }
