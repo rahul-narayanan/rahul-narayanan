@@ -10,6 +10,20 @@ const { placeholders, values } = Object.keys(conditions).reduce(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 export class CustomDataSource extends DataSource {
 
   async executeDynamicQuery(query: string, params: DynamicQueryParams): Promise<any> {
@@ -57,15 +71,22 @@ export class CustomDataSource extends DataSource {
     }
 
     if (arr.length === 1) {
-      placeholders.push(`${key} ${Operators.EQUALS} @${values.length}`);
-      values.push(arr[0]);
+      const value = arr[0];
+      const placeholder = typeof value === 'number' ? `${key} ${Operators.EQUALS} ${value}` : `${key} ${Operators.EQUALS} @${values.length}`;
+      placeholders.push(placeholder);
+
+      if (typeof value !== 'number') {
+        values.push(value);
+      }
     } else {
       const isNumberArray = typeof arr[0] === 'number';
-      const placeholder = isNumberArray ? `${key} ${Operators.IN} (${arr.map(() => `@${values.length}`).join(', ')})` :
-        `${key} ${Operators.IN} (${arr.map(() => `@${values.length}`).join(', ')})`;
+      const placeholder = isNumberArray ? `${key} ${Operators.IN} (${arr.join(',')})` : `${key} ${Operators.IN} (${Array.from({ length: arr.length }, (_, i) => `@${values.length + i}`).join(', ')})`;
 
       placeholders.push(placeholder);
-      values.push(...arr.map(String));
+
+      if (!isNumberArray) {
+        values.push(...arr);
+      }
     }
   }
 }
