@@ -6,3 +6,82 @@ const { placeholders, values } = Object.keys(conditions).reduce(
     },
     { placeholders: [] as string[], values: [] as any[] }
   );
+
+
+import { DataSource } from 'your-data-source'; // Import the actual DataSource class
+import { Operators } from 'your-operators'; // Import the Operators enum
+
+export class CustomDataSource extends DataSource {
+
+  async executeDynamicQuery(query: string, params: DynamicQueryParams): Promise<any> {
+    const { conditions, operatorForConditions, orderByConditions, appendToQuery } = params;
+
+    const { placeholders, values } = this.buildDynamicConditions(conditions, operatorForConditions);
+
+    query += placeholders.length ? ` WHERE ${placeholders.join(' AND ')}` : '';
+
+    query += orderByConditions?.length ? ` ORDER BY ${orderByConditions.join(', ')}` : '';
+
+    query += appendToQuery ? ` ${appendToQuery}` : '';
+
+    const result = await this.query(query, values);
+
+    return result;
+  }
+
+  private buildDynamicConditions(
+    conditions: Record<string, string | number | string[] | number[]>,
+    operatorForConditions?: Record<string, string>
+  ): { placeholders: string[], values: any[] } {
+    const placeholders: string[] = [];
+    const values: any[] = [];
+    let index = 0;
+
+    Object.entries(conditions).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        this.buildArrayConditions(key, value, placeholders, values);
+      } else {
+        const operator = operatorForConditions?.[key] || Operators.EQUALS;
+        placeholders.push(`${key} ${operator} @${index}`);
+        values.push(value);
+        index++;
+      }
+    });
+
+    return { placeholders, values };
+  }
+
+  private buildArrayConditions(
+    key: string,
+    arr: (string | number)[],
+    placeholders: string[],
+    values: any[]
+  ): void {
+    if (arr.length === 0) {
+      throw new Error(`Condition: ${key} cannot be an empty array`);
+    }
+
+    if (arr.length === 1) {
+      placeholders.push(`${key} ${Operators.EQUALS} @${values.length}`);
+      values.push(arr[0]);
+      return;
+    }
+
+    const isNumberArray = typeof arr[0] === 'number';
+
+    if (isNumberArray) {
+      placeholders.push(`${key} ${Operators.IN} (${arr.join(',')})`);
+    } else {
+      const indexArr: string[] = arr.map(() => `@${values.length}`);
+      placeholders.push(`${key} ${Operators.IN} (${indexArr.join(', ')})`);
+      values.push(...arr.map(String));
+    }
+  }
+}
+
+interface DynamicQueryParams {
+  conditions: Record<string, string | number | string[] | number[]>;
+  operatorForConditions?: Record<string, string>;
+  orderByConditions?: string[];
+  appendToQuery?: string;
+}
