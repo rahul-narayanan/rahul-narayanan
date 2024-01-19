@@ -161,3 +161,16 @@ Regular Audits:
 
 Conduct regular security audits, specifically examining the handling of user-agent strings and regex patterns, to identify and address any potential ReDoS vulnerabilities.
 Given that ReDoS vulnerabilities can impact the availability of your application, it's crucial to address them promptly. Always stay informed about updates, and proactively manage and secure your dependencies to minimize potential risks.
+
+
+
+
+
+
+Our frontend application does not actively utilize user-agent information, and we have not integrated or employed the user-agent parsing functionality provided by the ua-parser-js library in any part of our codebase. User-agent parsing typically involves extracting and interpreting information from the browser's user-agent string, which is not a feature that our application currently leverages.
+
+The reported ReDoS vulnerability in ua-parser-js poses a risk when the user-agent parsing functionality is actively used, and specially crafted input strings can exploit the vulnerability. However, since our application does not utilize user-agent parsing, the associated risk is effectively mitigated.
+
+To further ensure the security of our project, we have taken measures such as not relying on user-agent information, considering the removal of the ua-parser-js library if not needed, and keeping our dependencies up-to-date to address any potential security concerns.
+
+In summary, the ReDoS vulnerability in ua-parser-js does not present a risk to our project due to our conscious decision not to use user-agent functionality within our frontend application.
