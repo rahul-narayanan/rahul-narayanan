@@ -184,3 +184,14 @@ In summary, the ReDoS vulnerability in ua-parser-js does not present a risk to o
 Our Angular frontend project operates primarily on the client side and does not utilize server-side rendering or server-side templates that involve the EJS (Embedded JavaScript) package. Server-side template injection vulnerabilities typically arise when user input is incorrectly handled within server-side templates, allowing attackers to inject and execute arbitrary code on the server.
 
 In our case, the Angular frontend constructs the user interface through REST API calls and does not involve the processing of server-side templates. Consequently, the reported SSTI vulnerability in EJS poses no risk to our project.
+
+
+
+
+Our NestJS backend application, to the best of our knowledge, does not engage in file upload functionality. The reported vulnerability in the Multer package pertains to scenarios where an attacker could potentially exploit the system by uploading large files, leading to a denial of service (DoS) situation.
+
+Since our backend does not have any APIs or features that involve file uploads and Multer is not actively used in our project, the associated vulnerability poses no risk to our application. Our backend primarily focuses on handling REST API calls without incorporating file upload functionality.
+
+To ensure ongoing security, we follow best practices such as updating dependencies regularly, utilizing security scans, and staying informed about potential vulnerabilities. While Multer is present in our dependency list, the specific vulnerability related to large file uploads and potential DoS attacks is not applicable to our use case.
+
+In summary, the Multer vulnerability related to large file uploads and potential DoS attacks is not a risk to our NestJS backend application as it does not involve file upload functionality.
