@@ -174,3 +174,13 @@ The reported ReDoS vulnerability in ua-parser-js poses a risk when the user-agen
 To further ensure the security of our project, we have taken measures such as not relying on user-agent information, considering the removal of the ua-parser-js library if not needed, and keeping our dependencies up-to-date to address any potential security concerns.
 
 In summary, the ReDoS vulnerability in ua-parser-js does not present a risk to our project due to our conscious decision not to use user-agent functionality within our frontend application.
+
+
+
+
+
+
+
+Our Angular frontend project operates primarily on the client side and does not utilize server-side rendering or server-side templates that involve the EJS (Embedded JavaScript) package. Server-side template injection vulnerabilities typically arise when user input is incorrectly handled within server-side templates, allowing attackers to inject and execute arbitrary code on the server.
+
+In our case, the Angular frontend constructs the user interface through REST API calls and does not involve the processing of server-side templates. Consequently, the reported SSTI vulnerability in EJS poses no risk to our project.
