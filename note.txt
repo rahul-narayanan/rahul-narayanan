@@ -18,3 +18,22 @@ ORDER BY
   unique_key
 OFFSET 0 ROWS
 FETCH NEXT @page_size ROWS ONLY;
+
+
+CREATE MATERIALIZED VIEW your_materialized_view
+AS
+SELECT 
+  table1.column1,
+  table2.column2,
+  table3.column3,
+  ...
+  sysutcdatetime() as last_modified_timestamp
+FROM 
+  table1
+  INNER JOIN table2 ON table1.common_column = table2.common_column
+  INNER JOIN table3 ON table1.common_column = table3.common_column
+  ...
+WHERE 
+  some_condition
+WITH 
+  (NOEXPAND);
