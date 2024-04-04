@@ -1,39 +1,39 @@
+if (data.length === 0) {
+        return; // No need to execute if the data array is empty
+    }
 
-ALTER TABLE your_materialized_view
-ADD unique_key INT IDENTITY(1,1);
+    // Get the keys from the first object in the data array
+    const keys = Object.keys(data[0]);
 
-ALTER TABLE your_materialized_view
-ADD unique_key AS (CONVERT(BINARY(16), HashBytes('MD5', column1 + column2 + ...), 2));
+    // Build the values section for the USING clause
+    const values = data.map(obj =>
+        `(${keys.map(key => `@${key}`).join(', ')})`
+    ).join(', ');
 
+    // Build the SET clause for both update and insert parts of the MERGE statement
+    const setClause = keys.map(key => `${key} = source.${key}`).join(', ');
 
+    // Build the ON condition for the MERGE statement based on all the keys
+    const onCondition = keys.map(key => `target.${key} = source.${key}`).join(' AND ');
 
-SELECT 
-  column1,
-  column2
-FROM 
-  your_materialized_view
-WHERE 
-  unique_key > @last_key
-ORDER BY 
-  unique_key
-OFFSET 0 ROWS
-FETCH NEXT @page_size ROWS ONLY;
+    // Build the MERGE statement dynamically
+    const mergeQuery = `
+        MERGE INTO ${tableName} AS target
+        USING (VALUES ${values}) AS source (${keys.map(key => `@${key}`).join(', ')})
+        ON ${onCondition}
+        WHEN MATCHED THEN
+            UPDATE SET ${setClause}
+        WHEN NOT MATCHED THEN
+            INSERT (${keys.join(', ')}) VALUES (${keys.map(key => `@${key}`).join(', ')});
+    `;
 
+    // Prepare parameters
+    const parameters: { [key: string]: any } = {};
+    data.forEach((obj, index) => {
+        keys.forEach(key => {
+            parameters[`${key}${index}`] = obj[key];
+        });
+    });
 
-CREATE MATERIALIZED VIEW your_materialized_view
-AS
-SELECT 
-  table1.column1,
-  table2.column2,
-  table3.column3,
-  ...
-  sysutcdatetime() as last_modified_timestamp
-FROM 
-  table1
-  INNER JOIN table2 ON table1.common_column = table2.common_column
-  INNER JOIN table3 ON table1.common_column = table3.common_column
-  ...
-WHERE 
-  some_condition
-WITH 
-  (NOEXPAND);
+    // Execute the MERGE statement with parameters
+    await dataSource.query(mergeQuery, parameters);
