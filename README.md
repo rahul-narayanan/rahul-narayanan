@@ -28,4 +28,4 @@ I am a dynamic and seasoned tech leader with over 7 years of experience in desig
 - **Others:** Micro-services, Serverless architecture, Cloud-native development, Artificial Intelligence
 
 ## Let's Connect!
-Feel free to explore my repositories and projects. Connect with me on [LinkedIn](link_to_your_linkedin_profile) to stay updated on my latest ventures and collaborations!
+Feel free to explore my repositories and projects. Connect with me on [LinkedIn](https://www.linkedin.com/in/narayanan-rahul) to stay updated on my latest ventures and collaborations!
