@@ -1,31 +1,29 @@
-# Hello there!
+# 👋 Hey there!
 
-## About Me
-I am a dynamic and seasoned tech leader with over 7 years of experience in designing and delivering high-impact applications. With a proven track record of driving revenue growth, architecting solutions, and mentoring team members, I am passionate about leveraging cutting-edge technologies to solve complex business problems and deliver exceptional user experiences.
+## 🌟 About Me
+Hey, I'm Rahul, a passionate tech wizard and problem-solving enthusiast! With over 7 years of experience in the tech realm, I thrive on crafting innovative solutions and delivering exceptional user experiences. Let's embark on this coding adventure together!
 
-## Experience
-### Senior Full Stack Engineer @ RBC Investor Services
-- Replaced a 30-year-old legacy system with Aries Permission Service, accelerating time-to-market by 50% and significantly boosting revenue.
-- Architectured a scalable Workbench and standalone APIs, achieving an SLA of <500ms API response time.
-- Seamlessly integrated Aries across multiple projects, fostering secure access and enhancing authentication experiences leveraging Okta technology.
+## 💼 Experience
+### 🚀 Senior Full Stack Engineer @ RBC Investor Services
+- 🌟 Spearheaded transformative initiatives, replacing outdated systems with modern solutions, resulting in accelerated time-to-market and revenue growth.
+- 🌈 Architected scalable solutions and seamlessly integrated cutting-edge technologies to enhance security and drive business success.
 
-### Lead Engineer @ WeMove LLC
-- Spearheaded the creation of WeMove, a responsive web application linking tenants and lessees for referrals.
-- Delivered a streamlined referral system, surpassing client expectations with prompt and high-quality development.
-- Streamlined testing processes through implementation of unit and automation tests, ensuring improved application reliability.
+### 🔥 Lead Engineer @ WeMove LLC
+- 🌟 Led end-to-end development of groundbreaking products, exceeding client expectations and setting new industry standards.
+- 🌈 Mentored and inspired team members, fostering a culture of innovation and collaboration.
 
-### Front End Engineer @ Zoho Corporation
-- Revamped an outdated Admin Console application driving a 140% surge in sales volume post-redesign.
-- Orchestrated the creation of Toolkit app, slashing first response time in customer support by 4 hours.
-- Provided exemplary leadership, mentoring junior developers, and standardizing product development processes.
+## 💻 Tech Stack
+### Languages:
+JavaScript, TypeScript, Python, Java, HTML, CSS
 
-## Technical Skills
-- **Languages:** JavaScript, TypeScript, Java, Python, C, Shell Script, HTML, CSS
-- **Frameworks:** Nest JS, Express JS, Angular, React, React Native, Redux, Django, MUI
-- **Databases:** MS SQL, PostgreSQL, MongoDB, GraphQL, Redis
-- **CI/CD:** Docker, Helios, Jenkins, OCP, AWS, Heroku
-- **Tools:** Postman, Jira, Slack, Teams, VS Code, Figma
-- **Others:** Micro-services, Serverless architecture, Cloud-native development, Artificial Intelligence
+### Frameworks & Libraries:
+React, Angular, Node.js, Express.js, Nest.js, Django, Redux
 
-## Let's Connect!
-Feel free to explore my repositories and projects. Connect with me on [LinkedIn](https://www.linkedin.com/in/narayanan-rahul) to stay updated on my latest ventures and collaborations!
+### Databases:
+MS SQL, PostgreSQL, MongoDB, Redis
+
+### Tools & Platforms:
+AWS, OCP, Docker, Jenkins, Git, VS Code, Figma
+
+## 🚀 Let's Connect!
+Explore my repositories and projects, and don't hesitate to reach out! Connect with me on [LinkedIn](https://www.linkedin.com/in/narayanan-rahul) to stay updated on my latest tech adventures and collaborations. Let's code our way to greatness! 🌟
