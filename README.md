@@ -25,5 +25,11 @@ MS SQL, PostgreSQL, MongoDB, Redis
 ### Tools & Platforms:
 AWS, OCP, Docker, Jenkins, Git, VS Code, Figma
 
+## 🛠️ Skills
+- Solution Architecture
+- Full Stack Development
+- Testing Frameworks
+- Artificial Intelligence
+
 ## 🚀 Let's Connect!
 Explore my repositories and projects, and don't hesitate to reach out! Connect with me on [LinkedIn](https://www.linkedin.com/in/narayanan-rahul) to stay updated on my latest tech adventures and collaborations. Let's code our way to greatness! 🌟
