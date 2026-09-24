@@ -1,820 +1,4 @@
-00:00
-From the RBC has?
-
-  Speaker 1 00:01
-And effectively. We're doing a one-to-one replication between what the source system sent to us and the bronze tier. So, if they send us, you know, five files. We put five tables into our bronze tier, uh, directly, right? And we organize them by business date and the load time stamp.
-
-00:23
-Okay. Um. Then, when we go from bronze to Silver? We're harmonizing that data into a canonical data model. Uh, so effectively, basically making all the data look the same, and our data is, uh, largely organized by Financial product, right? So, if you have, uh? You know? A term deposit.
-
-00:50
-As an example, like all the term deposits across the bank, like they work the same, I think they could have the necessary fields for each one of those term deposits represented in our data model. Uh, and we basically just we we map and do everything that we need to do to make the data look the same way in that in that canonical data model.
-
-01:10
-When we move the data into the canonical data model, that's where we're applying, uh, change data capture. So, we're only keeping the or sorry, not only keeping, but we're keeping a history of. We're keeping a history of all the changes that we have done.
-
-01:30
-Change data capture. So, if it's a new contract, we load a new contract. If it's an existing contract and nothing has changed, we don't load it. If it's a brand new, if it's a changed contract below to new contract, we don't update it. We load a brand new one, okay?
-
-01:48
-Um, and so the fundamentally, though, like that canonical data model. It's made up of, um. We'll, we'll say like four major components. The contract component, uh, that's linked to that. These pre-accounting and post accounting fact tables. Is term fact table Loosely, but anyways? Uh, those, uh. Those tables make up.
-
-02:15
-Basically, the representation of the contract, so the terms and conditions of the contract and all those types of fields, plus the balances and the events that took place on that contract. So, as an example, like, you can have an investment account. Uh, the. Caught. There's not much contractual information with an investment account like you can think about is like a trading account, right?
-
-02:38
-So you don't, not much contractual information there it primarily has to do with. You know, when was the when was the account opened? Was it ever closed? Um. What else we have, like the the primary currency that the account is held in? All these other types of fields, right, that make up the the contract?
-
-03:00
-And then, uh, in the balance table, you would see the cash balance of the investment account. So, let's say you have ten thousand dollars, sitting there in cash that you haven't used to purchase any Securities. You'd have a cash balance of ten thousand dollars. Then inside the event table is all of the movements that happened on that.
-
-03:19
-All the movements that took place. Uh, in that investment account, so you, you know, at the yesterday, you had ten thousand dollar balance, and today you've boughten, you know? Uh, 10 shares of a stock worth a hundred dollars right, and now your mind is saying a thousand dollars from the cash balance of the account, right?
-
-03:40
-So, yeah, events is basically anything that is changing the balance. Of the product balances is the the balance reported by the system? And then we have a security reference information. So, like if you have a security like, you know? Nvidia or something. It has a whole bunch of reference data Associated to it, and we Source that from a security reference data store, same thing for the client information.
-
-04:11
-Same thing for the book information, so this is like referent different different cuts of reference data, right? One kind of tricky bit. Is that reference data? So, like, the security involved party and book reference, they are on a different, uh, um. They're on a different timeline from the contract.
-
-04:33
-Right. So, like, for example, a client can exist inside of RBC for. 10 years. They may have opened and closed five investment accounts, right? So, you open account, you know, you're, like, oh, I hate RPC. So I'm going to close it. Then I come back and say I couldn't find anything better.
-
-04:51
-I'm back to RBC, but like you've always been a client of RBC, you know, what? I mean, so the when you're doing the the the, um, the change data capture? Is happening on a different timeline between the contract information versus security information versus the involved party information versus the book information they're on.
-
-05:09
-They're on different timelines, right? Um. So all that said. This information is combined, and we're producing something called. This. These fpsl business event output templates. And what those are is fpsl, which is our subledger that we're integrating with. Uh, they expect a certain data standard to be passed to them so that they can do the accounting, right.
-
-05:42
-And that data is broken up into, uh, contract information, uh, involved party information, the event information, uh. And then there's some other stuff, like, uh, foreign exchange currency rates, and this kind of stuff. So, for each system that we perceive data for. Because everything is based on the product.
-
-06:04
-Like, we want to treat these products the exact same way. The majority of our pipelines. If we have done this very well. Will be based off of, uh, system and product. But the products code is reused independent of system. Right. So, if I'm receiving term deposits from system a and term deposits from system B, I have to do Source system specific work to map that into the canonical data model.
-
-06:33
-But once it's mapped into the canonical data model, I should be able to reuse the data quality checks for term deposits across all systems because I want them all to look the same, right? And similarly, when we generate business events is based off of the product again. Because like different products have different event, you know, taxonomies, and all this kind of fun stuff.
-
-06:54
-But again, if we've done our job, right? They should be reusable code depending on each product that we received that we want to publish to fpsl. Right. So, like One Source system, for example, could have five different products, right? And what we should be able to do is, say, if Source system has five different products, we should a be able to load each product independently.
-
-07:18
-We should be able to run the data quality rules for each product independently, and we should be able to generate the business events for each product independently. And that kind of gives us that, you know. The the the benefit of a modular code and parallelization when loading the the data set through the process, right?
-
-07:37
-So? After we send the data to fpsl, that's where the accounting takes place. Uh, so that you, uh, all the accounting, and then the the main things that they output. Accounting balances and accounting events. So, at this point like, this is the this is now the language that Finance like, truly understands.
-
-08:02
-Uh, they have GL accounts. Um. And, uh, that's ultimately the data that ends up inside the the general ledger. But we get the granular version of the information inside these post accounting fact tables. And you can see they're linked back to the original contract. And what this should prove out is we've received.
-
-08:25
-Let's say X number of events. From whatever system. Whatever contract like it has the same identifier, right? And we can see how that exact line was accounted for. And why. That's important is, for example, because. You could have a deposit, for example, like my deposit account. And, uh, today, that deposit account is receiving.
-
-08:50
-Let's say GL is being assigned gl12345, because as a positive balance. But then, my account went into overdraft. Like, I overspent, you know what I mean, and that actually turns into a loan. So, when the GL account gets assigned, it's now alone and no longer a deposit account. So, what you would see is like the price taxonomy on the contract side, says deposit, but the GL account says loan.
-
-09:15
-Right. Finance really only cares about this one, right? But you can do an analysis. For example, to say, you know, how many accounts do you have in overdraft as an example, right? Like, because they're being reported as loans to to finance now, but you say, what percentage of my loan portfolio is actually overdraft deposit accounts as an example, right?
-
-09:33
-So, but what this allows us to do is, uh. Reconciliation. Um, so we can reconcile the. Uh, balances and events provided from the source system against the accounted for balances and events provided back from the subledger. And there should only be explainable differences between those two. Right, because, uh, you know, it could be the case that you had to do an adjustment inside the subledger, uh, to rectify an issue?
-
-10:06
-But that adjustment line would come in as a as a, you know, as an identified line inside these accounting events and accounting balances, so we should always be able to True up. This is what we sent. This is the accounting that came back. If it's not the same, it's because of these manual adjustments that happen inside the subledger.
-
-10:27
-Um. I didn't really cover the control meta part of this. But at the end of the day, what we need to be able to track is, uh, we want to bake in data quality in each one of our data processing pipelines again, based off of the product. And we want to be able to understand, basically, the data quality scores, uh, that, uh, you know, for, for each system and product combination.
-
-10:53
-Um, we have to track a data transfer control history. Uh, and you know, this one actually in the the learning, the learning lab that we had kind of answered the question of how we would do this, but because bronze is going to be primarily snapshot based so bronze could have, like, let's say, 100, 000 records for one day, but we only end up loading 20 000 of those records because, you know.
-
-11:23
-Uh, 80, 000 of those contracts didn't change at all, right? So, we want to be able to. Basically explain those data transfer control variances with CDC in the loop, just knowing that. You know, the data? The data actually isn't expected to, just, you know. It shouldn't be ten thousand rows ten thousand rows ten thousand rows.
-
-11:48
-There's going to be differences between them, but they need to be explainable. Um. So, that's one thing for. For data transfer control history. Uh, we need a concept of run history because one of the, uh, specific requirements that we have is on any given day. We need to have an expectation of what are all the systems and products that we're expected to receive on that day?
-
-12:16
-Uh, versus how many have ran versus how many are existing in the pipeline that are being processed currently. But on a given day, I need to have an understanding of what I'm supposed to run versus what ran, and then you know, going back to how many errors took place and everything else right now?
-
-12:31
-I was, uh, straightforward as it sounds, because we have a very screwed up holiday calendar, you know what I mean, like global banks? So you got holidays in Singapore and England, and in the US, some trading systems? Send you data on Martin Luther King Day. Other trading systems will send you data on Martin Luther King Day, so they all have their own specific holiday calendars, right?
-
-12:53
-But anyway, so we need to be able to store all that information and basically understand. Why does all the data we're expected to receive on a given day and have we received it, and what state is it in and how many errors it processed, etc, etc? Um, finally, reconciliation history.
-
-13:11
-We need to be able to reconcile a couple different stages. Um, so far in this stage, like I've talked about one layer of reconciliation basically between your pre-accounting data and your post accounted data. Even on the pre-accounting side, we also want to reconcile our balances versus events. I think I mentioned this earlier, like in the investment accounts.
-
-13:32
-It's like, on day one, you'll have a closing balance of, let's say, ten thousand dollars. On day two, you'll have a new closing balance and basically the reconciliation that we need to perform is have. If I take the closing balance from yesterday? And I, you know. Plus, or minus all of the events that took place that day, does it equal the closing balance of the second day?
-
-13:54
-And if it doesn't equal the closing balance of the second day, it means that the source system didn't send us all of the events that we expected to send to make up that difference. And that would require, like, a, an adjustment to take place. Somebody would have to effectively upload the difference to say what happened, you know, why did it?
-
-14:11
-Why did it move? Or, you know, the balance moved, but the the dollar values didn't, right? The events did not happen. Why do you do that per customer per account per account? Per temp, right? Yeah, yeah, yeah. So that's that's so far in here kind of. One thing, that's uh, not in this picture, because I'm not 100 sure it's going to exist yet is an adjustment facility on top of this data model.
-
-14:45
-So? Um, I think the adjustments that are going to take place for accounting are going to happen inside fpsl. But that's a very so small subset of the total amount of data attributes that we store inside of. Ftp finance data platform. And a lot of the the remainder of those attributes that we store are primarily used for, um, reporting.
-
-15:11
-Right? So like. As an example, like, there's something called the Note 5 report. Uh, in the. When we're reporting to shareholders. And that basically breaks down. Your loans, uh, based off of a maturity buckets and the rate sensitivity. So you can have, for example, you know, you'll have a bucket of money that basically says, like all of you, we have these loans, and they're going to expire in the next one to three years, for example, right?
-
-15:43
-And, uh. So, but you would never send the maturity date to the subledger. The maturity date only exists on nftp. But so if we receive loans without maturity dates, the accounting happens everything's fine. But then, when you go to run that report, if you don't have maturity dates on all of your loan contracts, what it means is.
-
-16:04
-When I generate this report, I'm going to have basically unassigned loans going into the the if you Group by the maturity buckets. You basically have a pile of unassigned money, right? Because they don't have them, they can't fall into a maturity bucket. So, you're gonna have this. Like, other set of data attributes that are critical data attributes that need to be fixed in order to make sure the reporting process is clean.
-
-16:26
-Um, and for that, I think we're going to need an adjustment application, like, on top of the Silver Tier data set, where people can. Fix those issues. Uh, in order to make the reporting clean at the end of the day.
-
-  Speaker 2 16:40
-I'm assuming there's already in whatever the current system is. There's already capacity for adjustments like those at the whatever is currently called the silver level. Or would that be like a net new sort of? Functionality. We have built them in other places, um. But uh. It's always been. I mean, the we built them in a lot of different places.
-
-17:05
-Like, we know how to to build them, uh. But
-
-  Speaker 1 17:08
-Uh, you know, the last one that we built, for example, was actually on Hadoop. And, uh, you know? There's no. Uh, acid transactions in Hadoop, so. Different strategy to do it. You know what I mean so, uh? You know? Uh, you know, the Delta tables like, definitely help, uh, with that.
-
-17:33
-And, and we can probably build a much better application to to do it here. Um. But uh, but yeah, that one's a that was a tricky topic for a whole other set of reasons. Like, I think for technically, technically, I think it's very feasible. I think the the main problem is is, like, um, the target operating model for the business and everything else, uh, around it?
-
-17:55
-Yeah, I looked at it. As with, there's like a QA team in capital markets that basically does a Reconciliation. And,
-
-  Speaker 2 18:06
-Uh, quality assessment of some of the trades and activities that happens, and for them currently. The way that we are approaching. It was, um. Using Sigma so that they can make the changes. But then there, and then write it back into, like data, bricks. Um, I see going forward.
-
-18:27
-Like, maybe one of the mediums is just building an application. Uh, within databricks, and then you know, that would be your front end to the business or whoever it needs to which, wherever this team is, and then you get another YouTube kind of, like, see what that is, what's being reconciled.
-
-18:47
-What are the anomalies, you know? What are the transactions that, uh? That happened, and then obviously right back to the team. The Delta tables and sync them, and then you know we still maintain the history and have everything from our lineage perspective. Yeah, makes total sense. Okay, all right, that's that's a good long, like next phase.
-
-19:14
-Yeah, yeah. And then, finally, um?
-
-  Speaker 1 19:19
-Well, actually, like, so this part kind of unknown, but like the way that, uh, I have heard of it being implemented in other areas is basically we won't publish to the gold tier until everything has been cleared down. So, basically, your data quality checks have been resolved by adjustments.
-
-19:38
-You've gotten back all of your accounting events, etc, etc. There's basically, you know, all of those check marks have popped up. And now we publish to the gold tier. And in our goals here, like our canonical data model. It's basically I'll call it, I'll call it 3 and F, not, not, not falling through an F to the letter, but you know a three and F data model in cyber silver tier?
-
-20:01
-Uh, in our goal. Here we have a star schema dimensional model. Um. It would basically be reflecting the most up-to-date. Well, we keep the history in here as well, but you know, um? Uh, it would be like on a given day. We'd only be publishing the active records, you know what I mean, so active records get pushed, but that way it keeps it.
-
-20:23
-You know in in sync? Yep, but uh. It's Star schema dimensional data model specifically. So, you know, using things like power bi or something like that, you can kind of use the cube functionality where you're just dragging and dropping. Your measures and your dimensions and producing your ad hoc reports that way.
-
-20:42
-But for more. Um, controlled data sets that we'll need to maintain, uh, like their own history of. Uh, will create, probably, uh, one big data. Uh, or one big table data products out of that. So, for example, like a retail loans table, or like, uh, you know, a derivatives table something like that to?
-
-21:06
-So, all of those, like Financial regulatory reports that need to be generated, we would generate them directly off of those. Uh, one big data tables. And you know it, just there was one big data tables. Basically, it's just the the easiest way to have your lineage from table to to report and also give a a very simple viewable data object to the business to to use.
-
-21:33
-Um, yeah, that's
-
-  Speaker 2 21:34
-Fair. That's where we might want to have, like, that being a little bite temporal from that standpoint. If it's for break reporting? Yeah, yeah, exactly.
-
-  Speaker 1 21:47
-Um, now the last one. I don't have it pictured here unfortunately, or maybe I'll just draw. I'll I'll draw a separate picture for it, but one of the one of the big requirements that we also have is this concept of a drill back functionality. So? As data moves through this pipeline, it loses.
-
-22:07
-Granularity and descriptive context. So, from the canonical data model fpsl, we don't lose granularity, but we lose descriptive context. Like us, joining it back to the original contract so we can regain the descriptive context, right? But when it goes to the GL, that's where we lose granularity from fpsl to GL.
-
-22:27
-The data gets aggregated up on What's called the GL code block level. And at that point, you don't have the ability to understand what this balance is made up of.
-
-  Speaker 3 22:39
-Right, so?
-
-  Speaker 1 22:41
-Um, you know, you get balance of you. You see, whatever the code block is, there's like six data attributes six or seven or eight data attributes in there. The balances are aggregated up at that level, and then if somebody's like, what's making up this 10 million dollar balance in this Transit GL currency combination, right?
-
-23:01
-How do I? How do I explore the data underneath this right? And it kind of does two things for you, like one. Uh, that's kind of how you can reconcile your. Account your granular information that you're ultimately going to use for financial regulatory reporting. Against your general ledger, which is supposed to be your source of Truth right from a finance perspective.
-
-23:29
-So? We have to solution a way to be able to drill back from aggregated balances back down to the granular level of information. And. We have an idea of how to do that. Um. But uh. But yeah, I wonder, you know, not to answer now or anything, but if you had to implement a requirement similar to that somewhere else?
-
-24:04
-So forbid to y'all. Okay, so what do you think about this a little bit? So, what we're saying from? We have an aggregated value in the GL, but it's come from fpsl. And.
-
-  Speaker 2 24:19
-If we. There, we have to have some sort of relationship. We need that data somewhere. Like within databricks in this case. To say what that? What's available?
-
-25:03
-Available, where is it? And then, if we are pushing down that information, one is like the primary key that we're we're looking at from that perspective, and then what's that, like, what's a joint going to be right? And is that join? Um. Uh, let's call it resilient, right? Like, in terms of, you know, um, is there?
-
-25:29
-Can there be multiple? Like, if we're for joining out at an account level, right? Or like that, TL level can there be multiple transactions on that GL? Um, what does that actually look like? So, just looking at permutations and making sure that we Define the right primary key, I think, is the key part there.
-
-25:49
-Yeah, yeah, this is how we thought about it was basically if I take.
-
-  Speaker 1 25:55
-If I take the GL code block, which is something like this? And if I take? This set of information? Yeah. And I hashed it, and I hash it, not the dollar value, but everything else if I match this. And if I go and apply, I have all this information in FTP.
-
-26:17
-And I create the same hash. It means that this underlying data? Makes up this hash. Anytime you have your feet. Yeah, yeah, so I invent a key.
-
-  Speaker 2 26:28
-On those things,
-
-  Speaker 1 26:29
-You know, what I mean? Yeah, and then I can kind of. Traverse through in an easy way. Yeah, I think that's. That's fair, like, I mean, uh, at a macro level, it all makes sense to me. Yeah, yeah,
-
-  Speaker 2 26:45
-All right. Like,
-
-  Speaker 1 26:45
-There's no way around it rather. Like, we just have to have a key, which we're identified here. Now, we just need to. What we need to validate?
-
-  Speaker 2 26:56
-Is that? Is there any risks of having a key like this? I don't think so, right? Like, uh, from that perspective, and would there ever be any missing data? From from this perspective from a key saying, how do we make sure we have that validation in place to be like?
-
-27:16
-Hey, these are the nine fields that we require, and none of them are null, or if it is null, then it is, uh, supplemented right? We just need to make sure what the outputs and inputs are on both sides.
-
-  Speaker 1 27:29
-Yeah, fully agree. So, like, yeah, if
-
-  Speaker 2 27:33
-We,
-
-  Speaker 1 27:33
-If I look at the Geo like this, and then where it says FTP level one. If I get the same hash, then I I? I can sell these two. I can say, okay, these two ten thousand dollars each. I'm happier, and then in level two, where I give you the granular information.
-
-27:47
-That's where I still have the same hash key, regardless of the contract inside of fdp, right? But like, I can add more and more. Dimensions to this table. So, for example, in this case, we just added the source system of record originating, and then whoever did the accounting, right?
-
-28:03
-But you can keep adding all the way up to the contract ID, and the balances would just keep getting broken down further and further, because all of them would have the same hash, right? Exactly as long as these two numbers match, then this is fine. Yeah, yeah, yeah, I think this is just, uh.
-
-  Speaker 2 28:21
-This works. We just need data validation as we go through these steps to ensure that fdp level two is consistent. But yeah, yeah, and as long as that, as long as those checks are made, then we're okay to report otherwise. Do not report, like, you know what I mean, like it goes into our our q18 that we talked about earlier or whatever way that we want to, um?
-
-  Speaker 1 28:49
-Right. Yeah,
-
-  Speaker 2 28:50
-Yeah, okay, okay,
-
-  Speaker 1 28:51
-So yeah, I've taken up quite a bit of time, but uh, the main things that I'll say is, uh, I think what we can do, uh, is. Um. Maybe the first area of focus for us is moving data from the bronze tier into the silver tier right. And, uh.
-
-29:09
-You know, maybe then the next area of focus is going to be around, uh, control metadata? And then, the next year, you know, we can decide from there, but? Uh, this first stuff from bronze to Silver. We've done this using notebooks, and now Abhishek has tried to do it using spark declarative pipelines.
-
-29:28
-So, maybe Abhishek, you can present that now and get the and and maybe if you guys are okay with that, we can move on to that first step. Yep.
-
-  Speaker 2 29:39
-Okay, okay, sure, yeah, go ahead. Yeah, one second, let me share my screen. Okay, so I will give.
-
-  Speaker 4 29:49
-A brief about the notebook Implemented earlier. Um, so is my short right on our. Silver layer. We are trying to build a canonical model.
-
-  Speaker 1 30:00
-And in our first equation. What we did is.
-
-  Speaker 2 30:04
-We have five to six tables. Uh, related only to? Contracts. And. We went ahead. And you know, created this notebook. So, for each tables. Uh, basically, we manually implemented a CD. All the Logics, right? Um, at that time, we were not aware that, uh, you know, light is allowing.
-
-30:27
-Um, spark regulatory pipeline. Um. Yes, so, but one thing we realize is, like, um. As we have done everything in SQL, right? These are when it executed sequential. It's this tables can load in parallel, but because of how it is structured, it is unable to load. Um, and one of the like design principle.
-
-30:52
-Um, we are evaluating, not finalized yet, but we want to know, like, we want to write as much as in SQL than using, uh, you know, spark apis? Um, and the reason is. Lot of transformation. Is easier to understand, right? Uh. The the information is not hidden, right? So that's the principle.
-
-31:16
-We want to follow. And as spark declared, a pipeline can understand the dependencies between sequels, right? It can execute in parallel. What we did is, uh. You know, started with? Simple table first. So, we have. Data in bronze. And contract is a very simple. It's like all the unique contracts, right?
-
-31:41
-What we have seen till now, um?
-
-  Speaker 1 31:45
-So he created a pipeline. Let me.
-
-  Speaker 2 31:53
-Um, so create structure, table streaming table, sorry. Um. Doing all our mapping in the view temporary. And then Auto CDC. Um, as we are experimenting this for the first time, right? Um, my first question is.
-
-32:16
-Is it good to have Dynamic parameters? Declarative pipelines. And like. What I understood. Looking at the documentation is like internally. Spark has some checkpoint mechanism, right, like? Till
-
-  Speaker 4 32:35
-Where it has seen the data in the bronze table light, and as then, when there are changes on the bronze table, it automatically does the CDC. But let's see if you want to rerun a pipeline. In that case, we might need to supply a business date.
-
-  Speaker 2 32:52
-A. Uh, practice to have Dynamic. Variables. Uh, I would say yes, depending on the different needs. Like, uh, let's say you're building more of a like a pipeline recipe. Like, it's definitely a good usage of. Reusing the same power plane and just providing different input output. Then you have only one code to maintain, and you can reuse it across different.
-
-33:19
-Across different, uh, the different different pipelines. Yes, right. So, so that was the um?
-
-  Speaker 4 33:27
-You know, thought process behind you, right? The same code, which we can use for auto CDC as well as if there are any issues right to use it. But, like, while experimenting.
-
-  Speaker 2 33:37
-What I observed is that now, I'll show you one run. So, initially, when I ran the pipeline, um, you know, 300, 000 records got loaded? Um. Then I was. Um, injecting the parameter, right? So? Jobs sdp jobs. So, for example. So then? You know, I'm injecting the business date here.
-
-34:08
-Um, and then when I try to run again, it's showing zero output record. Um, and my first question was like it has already seen the data, right? It already process it. So then I went ahead and delete. The entire table. Uh, where is that? Yeah, so tranquet doesn't work so, uh, you know, I dropped the entire streaming table.
-
-34:33
-And this is what experimentation would so?
-
-  Speaker 4 34:35
-And then again, I ran the job, but still, it is showing zero output records.
-
-  Speaker 2 34:44
-Even if you refresh the whole pipeline, that's what you said.
-
-  Speaker 4 34:48
-I deleted the table.
-
-  Speaker 5 34:52
-Yeah, usually, like, yeah, playing with sdp. You try to not manually change anything if you're okay. Let's say you go back to your pipeline. Yeah, if you want to reuse the same code, then you'll have to do.
-
-  Speaker 4 35:06
-Um, going to your job, not the job run, go, like, go. One step like sdp jobs?
-
-35:22
-And if you were to like reprocess the whole thing, then what you need to do is?
-
-  Speaker 5 35:27
-Uh, let's, let's. Let's just kill the Run. The second over here.
-
-  Speaker 4 35:37
-And then, like, let's just wait a minute, it's ready to stop it. Then, it's gonna be good.
-
-  Speaker 5 35:43
-You have to do it. Like, basically, you don't. You don't do a run pipe plane, go like the, uh, arrow, just on the right, and then full table refresh. Okay, and this is how you rerun the process. Yeah, but let's say we are trying to keep, uh?
-
-  Speaker 4 36:00
-Data in bronze for 30 days, right? Yeah,
-
-  Speaker 5 36:03
-And
-
-  Speaker 4 36:03
-Then we will move it to Silver. Now, imagine we are. Second year. In the future, right? If I do full refresh, will it drop? Yeah, it will tell it. It will fail. What would be the intent of doing a full refresh, um?
-
-  Speaker 5 36:24
-You can go back, let's say, like, because how it works, you'll have your your log. You can go back in time of what you kept in memory, but you cannot go back. Like, if you were to, you have to rerun the whole thing. Last, I checked, I can. I can look if there's any changes that happened there.
-
-36:39
-Uh, yeah, we just have to make sure, like? Uh, yeah, what's the use case of doing some of those refresh?
-
-  Speaker 3 36:48
-Is the Full Table refreshed just so that you can test that specifying a business date actually works? Is that? Is this something that you're just going to be doing while you're testing, or is this something that you foresee doing when you're like actually running in production? So?
-
-  Speaker 4 37:06
-Actually, this is for testing, right? I, I don't have a situation. I'll do the full refresh. But like. Um, you know, if I do full refresh, then? Like, my understanding was. Once the data is gone from bronze. Um, then I lose my data in silver. And the intent is you will delete.
-
-37:34
-In silver. After 30 days, then the data's gone. You're gonna have, like?
-
-  Speaker 5 37:40
-Uh, even like a cold storage, or you're not keeping any memory of those changes. So, um, silver, we will retain it, for I think seven to ten years. Okay, but but bronze, we want to, you know, remove it.
-
-  Speaker 4 37:53
-30 days, 60 days, 90 days. Whatever, like, shorter period of time, right? Okay. Yeah, so, yeah, so, like, you see the problem, right? That's awesome. My bronze also will need to keep in it based on current, uh? Archival.
-
-  Speaker 6 38:16
-Come into clones also, right? Yeah, but we'll be loading into the canonical data model.
-
-  Speaker 1 38:24
-I don't know if we need bronze. I don't know if we need bronze for as long as we need the data and silver. Yeah, okay, because bronze is really there, like at the end of the day for us. Like we, we haven't determined how long we're going to keep it for like 30, 60, 90 days, two years.
-
-38:42
-Whatever, whatever right, we just know that, like, it's gonna grow much faster than silver because it's snapshot based and not not scd2, but you know, I mean, like, no, no change. Data captures happening in our bronze tier at the end of the day. The only real reason they keep it in.
-
-38:57
-You know, keep it in bronze for some duration of time. In case we need to replay something, something went wrong and we need to redo everything. But. We also have the same data, and I don't know what the retention policy of it's going to be over. There is like sitting on an S3 bucket on Prem 2, right, so?
-
-39:15
-How long we need to keep the rise? The pre-transformed data for? Open question, but what one thing that I think back to like the root of it before we got into that conversation was? So abuse that you populated that that table right. And now you wanted to rerun with a specific business date, yes.
-
-39:38
-But, uh, you couldn't and nothing got loaded because, like, the system knows that you already loaded that information. Yep, so you drop the table? Then you tried to run it again and still nothing got loaded, right? Yes, so is there like, is there a a system table somewhere that basically is like this.
-
-39:58
-There's a system table somewhere that's tracking what, what the spark declarative pipeline has done previously versus what's done now, and maybe dropping the table doesn't drop the information from that system table that keeps track of everything.
-
-  Speaker 5 40:09
-The best practice, I think, for your specific use case, would have been enough to delete the table, but just. To go back in time to the point in time. Like, let's say you, like, you want to rerun. You provide the date and time.
-
-  Speaker 4 40:24
-Less than 30, 60, 90 days that you keep your brands. You go back to that point, and then you rerun. I think I, I could test
-
-  Speaker 2 40:32
-It out, but that would be the appropriate rule because, you know, STD. Type 2, you don't want to mess with the economical, like the silver layer, because you don't want to have a new insert and you won't have inserts like in between times, like those happens in real time.
-
-40:46
-Uh, and this is like, you don't like, you don't manually, uh, provide data unless you like, maintain your own. Um, I would say your own metadata. But like, we have to keep this in mind. Like, I think the yes, the best practice would have been go back in time to that point in time, and then restart the job.
-
-  Speaker 3 41:06
-Chad, is there also I, I? I'm kind of foggy on this, but um, I remember the whole idea around, uh, dropping managed tables versus external tables. Like, is there something where, like? If they, if you drop the table. And then, like, recreates it again. The data, it's just the metadata that's getting deleted, and not the actual data.
-
-41:30
-And so when he, like, undrops it, the data, just like the table just exists as it, like I'm trying to forget which way it is is, if managed, tables are, if external tables, it's the metadata drop or data drop only. Um, but maybe that's what's going on?
-
-  Speaker 4 41:44
-Yeah, so I think that would be external, um, Adam. The sdp examples within RBC. They are all managed, so I think you can correct me wrong, like? Does like platform supports sdp external tables because I, I don't have access to? Um, you know, file system here. Right. From that perspective, I think the idea is to use managed from that perspective.
-
-42:16
-Is that in this case, when you are?
-
-  Speaker 2 42:20
-Oh, to when you are doing SCD type 2 and you're trying to do deletes? A you're, you're generally gonna run into issues because we capture already that history of that record. And because it's already there, there is a method and I'll let Chad double click on this part, but there is a method in terms of how to do this and you, and it's just the approach that you talked, right?
-
-42:45
-So don't do that method. We'll show you a different method otherwise. You have to do a restore. There's things have to do. We ran into this issue. Um. I would say like a year ago or a year and a half ago with, like, uh, what we're working with? Uh, Global cyber security, right?
-
-43:05
-Like, similar things we had different previews at that time, which we have different things that are? That we've introduced. I just want to make sure that we capture the latest method for your team and then tell you exactly how to like, hey, I have something. How do I, you know, delete it, rerun it, uh, and what's up proper workflow, so we'll definitely get back to you on that on that one.
-
-43:29
-That would be really helpful for us.
-
-  Speaker 5 43:34
-And like just one letter, so it all happens in the like. The chat pointing that is like automatically taken care of. Uh, so, yeah, it's. Let's say you want to have apply like manual changes to like the spark calculator. Let's understand what you need, and we'll figure out like the best way to do it.
-
-43:54
-So? Basically, the idea is. Um, you're in a normal situation. Um, this job will run. It has an ETF pipeline right wrongs to Silver. Um.
-
-  Speaker 4 44:12
-Due to X reason, right? Data got not loaded or? Something got failed. We may need to rerun it, right? So what I was thinking is we can use this job parameter, and I think.
-
-44:28
-Lumina also supports injecting job parameters. So? Let's say, and I was experimenting right. Business data is this 815? How we have mapped? Um and pipeline is so that this is the job.
-
-44:49
-And in pipeline. We have mapped using this way. Um, so I am not sure this is the correct way.
-
-  Speaker 5 44:58
-Tool links because and the reason I'm saying, I'm not sure, is because I don't see. Injecting a business day is doing anything. It's between the entire load, but it's not doing anything.
-
-  Speaker 2 45:13
-I think this is basically how you've con. Like, it's not the business state here that is causing issue. It's like the sdp cannot just go back in time and rerun that once it's run it, you can just go back in time. So, I think this is more like where you're, you're having your issues and not the other way around.
-
-45:28
-Okay, so let's say now, if I cannot run it, uh, then there is no point of configuring. Um, this is where condition right.
-
-  Speaker 4 45:41
-Um, in my Seiko. It's like, it's redundant, then,
-
-  Speaker 5 45:45
-And in in your specific case. Yes, then there's no real need because it will always just shake what's new and add to the to the pipeline. Okay. So, Mike. You see this challenge?
-
-  Speaker 4 46:00
-But at the same, but at the same time, let's say. We want to rerun it or replay the data. How we can do it. Should we re-ingjust into bronze again? Is there any other way?
-
-46:22
-So, I think if you want to rerun, I think that's when it comes back to sort of. What Chad was talking about is, you have to revert because we have. Sort of like point in time travel with.
-
-  Speaker 3 46:34
-Uh, with our Delta tables, you're able to like what you'll want to do is go back in time. To the point in which you know you're trying to rerun your pipeline to and then rerun it again with the new the new data load. It wouldn't be deleting the data that the most recent data from when you want to run until now and then rerunning it.
-
-46:55
-It would be going back in time and then rerunning it. Um, and that will be done via SQL command, right? Uh, it will be done.
-
-  Speaker 2 47:08
-Yeah, the same. This the the same way with your pipeline, uh? Uh, see on the road on the side.
-
-  Speaker 5 47:21
-But yeah, I think for this specific use case, let me test it out.
-
-  Speaker 4 47:23
-Okay, and like making
-
-  Speaker 5 47:25
-Sure I can, I can actually rerun from a specific date. Um. And I'll provide you the answer, exactly? So we don't like, just go back and forth. I think that the yeast is pretty clear. I haven't, uh, done it so far. Sure, perfect.
-
-  Speaker 4 47:41
-If you need anything, I can send it across as well. Configuration or you can take a screenshot it, like the main point is. How we have configured these parameters? Um, and and again, like, these questions are, you know, related to the rdb like run the bank? Basically, once we hand over this pipeline to production, right?
-
-48:02
-They need to do all this replays run again. And for them. It would be difficult to write a query.
-
-  Speaker 5 48:10
-It would be easier for them to trigger a job, or you like, click on a restart button so.
-
-  Speaker 6 48:16
-I, I wouldn't see this applied. Okay, now. Sorry, I understand your question. I wouldn't see this applied to like a SQL query. I think it would be definitely part of a job with a like a feature. It would just be rerun this job, but like with this specific date in mind and not like today, for instance of like, what's like, the point in time where you get the new data, or like the past data, right, okay, and um?
-
-  Speaker 5 48:42
-As I said, I like these things will grow, right? So many sources them, the contract will grow. Um, you don't want to accidentally. You know, do a full refresh or something. So, I was just reading it through.
-
-49:01
-Any useful table properties that we should consider, right? Just just let us know or what you have seen.
-
-49:10
-Other use cases.
-
-  Speaker 6 49:16
-Um, I will look maybe. What could make sense for us? Yeah, I'll I'll get back to you with that one as well. Okay, perfect. And um.
-
-  Speaker 5 49:26
-Last thing I haven't tried. Take this out, but okay, so I'm going through this pipeline. From the event log, I will extract how my record got inserted. And changed, right? And then we will write it to our own operational table. To from event log. Event lot is.
-
-  Speaker 6 49:53
-Uh, yeah, I run this from, uh, like the sequel, uh, the queries, the SQL editor. Otherwise, I think from here, it will, uh, oh, no, it was working, just like. It was something like this. Oh, I don't even know I couldn't. I could do that from there.
-
-  Speaker 5 50:24
-Yeah, see. Yeah, so actually, it's a just as people I just didn't know. You could get the output from. The the the specific class place. Would that make sense?
-
-  Speaker 4 50:39
-Let's say I want to capture my input parameters in case we go ahead with, you know, let's a business date. Input parameters. How many output codes recorded where I could find them because I was checking this table and I was not at all finding?
-
-  Speaker 5 50:59
-My dresses.
-
-  Speaker 6 51:00
-Okay, so what you mean from that? So, let's say you, you, you have a job, and you want to know what was the input that you've provided. Yeah, so input, I think I think I just looked at it input. I can get it from here. But the output record count, right?
-
-  Speaker 5 51:16
-So for this?
-
-  Speaker 4 51:20
-Uh, table. What was the output recorder?
-
-  Speaker 5 51:24
-How many
-
-  Speaker 4 51:25
-New inserts were there? Oh, okay, uh, this is available.
-
-  Speaker 5 51:36
-You have, let me. You, uh, which is not the serverless. No, no, um?
-
-51:54
-Um, I've I've searched this already. Let me remember exactly.
-
-52:04
-I wonder if maybe this one will come more from the? Uh, you are the output the red stream with you.
-
-  Speaker 6 52:40
-Can you see if there's any even types like flow progress or something? Yeah, I was gonna say the same thing. Look at that. Update progress.
-
-  Speaker 3 52:58
-Yeah, I think under, exactly, under the events that are flow progress event types. There should be, uh, like metrics, and then num output rows.
-
-  Speaker 4 53:06
-Okay, so I need to go to find those. Okay, slow event type. Yeah, yeah. So, the event type will be flow, underscore progress, okay.
-
-  Speaker 3 53:20
-And then, within that, it'll be dot metrics.num underscore output rows. Okay. Okay, so you probably haven't seen that. Experiment and check it out! Yeah, so.
-
-  Speaker 4 54:03
-Okay, and um. Now! Doing this sdp. One thing I realized is. So, DLT and SDP. It's just not rebranding, but there are like syntax differences as well.
-
-  Speaker 2 54:21
-Yes, like that, yeah, you're right, yeah. So, for example, the streaming live is a part of dld and not sdp, but the question is, is it the right way to do it? And if I was removing this, it was causing issues.
-
-  Speaker 5 54:44
-Yes, you're right. There is some differences.
-
-  Speaker 6 55:03
-I could try to give you like all the differences of one to the other. Like, let's say, like two columns, uh, DLT, on one side and sdp on the other side, just to see what what is different from one another. Yeah, I mean, what I'm looking is?
-
-  Speaker 5 55:21
-Whichever is the latest, right? So, if sdp is the latest, and is it the right? Way to do it, or I am mixing two things up, so I think you can take the screenshot and. Of this, and then you can let me know.
-
-  Speaker 6 55:33
-Okay, I'll take a screenshot. Yeah. Like, when I try to remove, uh, you know? Um, it was causing. Issues. Basically like, you cannot use this and. With stream type. Um, and I think that's. That's it. That's, that's all. I had, and the main. The main answer.
-
-  Speaker 5 56:04
-I'm searching for is the dynamic variable and? It would be highly appreciated if you can find it. Yeah. The the, I think you create a refreshment, realize you is the right one.
-
-  Speaker 6 56:19
-Temporarily shooting up. No, I think, uh, internet use great tempering view. Okay, it's kind of similar. Okay, I'll provide a list of like, what's different between one another so we can clarify, yeah.
-
-  Speaker 2 56:35
-Perfect! Thank you. Uh, Mike, you have.
-
-  Speaker 5 56:44
-And the last thing Irishek. I could mention I know you work. You want to work with SQL. There's what. There's two things around CDC, there is the auto CDC, but there's also the auto CDC from snapshot, since you're getting like brand new files every time. And what you can do is use from snapshot.
-
-57:06
-So, he's going to re-run, like a verification, and you can provide like the different columns that you want to monitor for a change or not, and it's going to be like a lazy pipeline. If, like, if I don't know if that's the right word, but it's only gonna make a change on the data, um, on, from, uh, those snapshots.
-
-57:26
-If, uh, it's highlighted in the column that's want to monitor, so I, I think we could compare the two, uh.
-
-  Speaker 4 57:34
-I will tell you like I saw those indexes for snapshot, but what happens like when we say files, we are dropping files to an on-prem location, right, and? There is this Lumina-like platform, which does Auto CDC and brings it to bronze table. So we don't have direct control on the files.
-
-  Speaker 5 57:58
-Hence, we can't use those snapshot. You see, but the files that you're getting.
-
-  Speaker 6 58:03
-Are the full snapshot, or you only get the Delta full snapshots? So, you get full snapshot. So, what are the the, what do you not have control on? Sorry, so the files are.
-
-  Speaker 5 58:17
-You know, push two on-prem S3 location, yes, and then, um. You might have heard seeing us. There is a Lumina team, right, Lumina, platform.
-
-  Speaker 6 58:26
-So, what they does,
-
-  Speaker 5 58:27
-Is they map those files to the bronze tables? So we don't have access to any ADLs location, or you know, the the underlying files? We directly deal with the bronze tables.
-
-  Speaker 6 58:41
-Well, that I understand, but you can still take the the bronze table for, uh, for snapshot, as sorry, is it okay, because on the syntax, I thought it was like it has to do with underlying files.
-
-  Speaker 4 58:55
-Uh, no, you can. You can provide the source type. I can verify that one as well. Okay, just to mention, yeah. Okay. Yeah, I made me wrong because I was checking it. What you'll get is just, uh, you'll monitor.
-
-  Speaker 6 59:15
-So, what you could do is every time you get a new Delta table?
-
-  Speaker 4 59:21
-You
-
-  Speaker 6 59:21
-Could, let's say you, you pick like a. Like a a pipeline bronze location, you would take like the the one that is landing you would do over like, um. Uh, what's the word? Um, you could. What you could do is do an overwrite to like the let's say you have a bronze table that is going to be the pipeline every time you you take that Source.
-
-59:43
-You do an overwrite with, uh, the Delta log. I think it's. Um, yeah, I forgot that Delta change feed? Yes, uh, Phil, thank you that, uh, and this will, uh, have like the, it will monitor the delete the update and the new values, and that would feed the pipeline.
-
-1:00:05
-I think it could be like an easier way to actually run it.
-
-  Speaker 5 1:00:10
-Okay, so I was checking this one, so you were seeing this CD upgrade?
-
-  Speaker 4 1:00:16
-Ah, this one, the auto CDC from snapshot. This one only works on python.
-
-  Speaker 5 1:00:30
-Oh, why
-
-  Speaker 6 1:00:31
-Is it? Why did I see limitation on where I see this limitation then?
-
-  Speaker 3 1:00:37
-Chad. Don't worry, I'm seeing that, too. I was about to bring that up. Maybe,
-
-  Speaker 6 1:00:41
-Yeah. The I on this one interesting, I can share in that. Oh, we don't have a chat, right? So,
-
-  Speaker 5 1:00:47
-I think, okay, okay, this is the first data table. And, yeah, the snapshot is from python. Yeah,
-
-  Speaker 6 1:00:54
-Exactly. So, here you do a from snapshot flow, so you would have your bronze with, uh, uh, change the Delta change, feed enable, and then this with an overwrite every time, so you would keep all your.
-
-  Speaker 5 1:01:07
-Lending files. The amount of time you want, but anytime you want to have a new asset, you take that Source. You override it to your bronze. If you want to do best, you can do multiple of those overrides as well. There will be tracked and then any, and you see here exactly that starts at ndash.
-
-1:01:24
-Uh, oh, sorry, that's that. But, yeah, it's doable. I, I can prepare a kind of quick demo on it if you want. Okay, perfect. Yeah, I'll also check this out.
-
-  Speaker 4 1:01:33
-Yeah,
-
-  Speaker 5 1:01:33
-Yeah, but, but, as I said right, our first preference would be on a cleaning SQL something like this so that we have nice pipeline view. What's happening? Understood. Yeah, all right.
-
-  Speaker 4 1:01:58
-Thank you, Chad Adam bouncer, uh, Mike, you have anything else?
-
-1:02:11
-Um, the only thing for the CDC that I think we. Talked about. Briefly, but I don't think it was implemented. Here was the.
-
-  Speaker 1 1:02:22
-Uh, right now. I think Abhishek is purely off of load time stamp, right?
-
-  Speaker 5 1:02:28
-Uh, yes,
-
-  Speaker 1 1:02:29
-There needs to be, uh, like load time stamp within a business day. So, I think they had that beta functionality, um, get the term of it, um? Um, your watermarks, you mean, like, you want to have, like, a day of?
-
-  Speaker 6 1:02:48
-Like a windowing. Yeah, like, let's say, sequence by basically.
-
-  Speaker 1 1:02:54
-Uh, yeah, but you need to. I think you need to seek respite business data and by load timestamp, right? Because basically, what happens
-
-  Speaker 5 1:03:02
-Is, they would
-
-  Speaker 1 1:03:03
-Say we have a business state come in. Um, with load time stamp. And then, let's say, two days later. We get the same business stage, so it's like, I only want to insert those records. Like as a version two of that business state. You know what I mean?
-
-1:03:29
-So? Um. Uh, we had conversation with a Nasser on that databricks training day. Um, where, um, I think the auto CDC that? Uh, being shown was, uh, it was being sequenced on load timestamp. Right. So, basically, if I get a load time stamp that's later than what's currently inserted, then Auto CDC will apply it based off that load timestamp.
-
-1:04:02
-But what we need to do is do it by business day and load timestamp so that I get a new version of the data for that business day, and not just a new version of the data period, because because, realistically, what I'm what we need to do is like, we need to apply Auto CDC based off of that business date that was processed earlier and not the latest version of the contract.
-
-  Speaker 6 1:04:24
-Okay, so, uh, if I can understand correctly? You want to have a new value and just part of the column. That would have a change applied. The business day would be one, and if they update, then you get a new value.
-
-  Speaker 1 1:04:38
-Um, you know. So, like, basically like the scenario is on day one. Like, let's say, the business day, September 22nd, right. We loaded data set. We found a bunch of uh issues with that data, right, and then a source system says I'm going to resend you September 22nd tomorrow, right?
-
-1:04:58
-Okay. Yeah, but the the lines with the the example that?
-
-  Speaker 6 1:05:05
-Abhishek is showing, so you want to be able like to reprocess, maybe two days ago, and then with the new. Like, let's say, you have a new. Uh, update of like two days ago, but you would run two days ago like yesterday, and then today, for instance. Yeah, but I think that, uh, there was.
-
-  Speaker 1 1:05:22
-Uh, some beta functionality that was created in databricks, and I think it came out of an RBC use case.
-
-  Speaker 7 1:05:29
-Yeah, so I think
-
-  Speaker 8 1:05:30
-I
-
-  Speaker 3 1:05:31
-Think, what's what you're referring to? Yeah, there's a beta feature where for auto CDC you can do stored as bite temporal instead of stored as SCD. One or two, I think that's what NASA was, was getting out there. Sounds familiar.
-
-  Speaker 4 1:05:47
-Yeah,
-
-  Speaker 3 1:05:47
-So we can ex. We can definitely explore that, but I think there's also, I mean, Chad here is a good point. Like, if we can just do a historical backfill, maybe we don't even need to do that. Like, we don't need to get beta features involved at all. But maybe there's a world where we can just do this?
-
-1:06:02
-But maybe this is something we need to work out over the next because we can
-
-  Speaker 6 1:06:05
-Compare. I think it lets if if it's like in, uh, minus two days, it could be reasonable to just reprocess, but if it gets more complex, we could look at the future, I'll I'll let's. Let's, uh, sync Adam and see, maybe, what makes sense? Yeah, yeah.
-
-  Speaker 3 1:06:21
-Yeah, so, yeah, okay, that's, uh, that makes sense, though, um, I think, in terms of? I guess next steps are just just things to prep for next week, so I know, Chad, you've. You've got a couple demo pieces you said, you want to put together for Abhishek for next week around Auto CDC.
-
-1:06:42
-Um, I think there's a few points. Uh, let me see just trying to see.
-
-  Speaker 7 1:06:48
-Um, around Dynamic parameters.
-
-  Speaker 3 1:06:53
-Um, historical backfilling Auto CDC from snapshot. Those kind of demos, I, I'm sure, Jen, you have it all written down anyways. I don't know you rehash everything. Um, but is there anything else? As we've looked in next week that we'd want to like that, you guys on the RBC side would want us to prep for.
-
-1:07:12
-Um. Yeah, looking. Looking to next Tuesday?
-
-  Speaker 4 1:07:23
-Okay, let's give
-
-  Speaker 1 1:07:25
-It a. Let's give it a sink, and we'll send an email out in the next day or so.
-
-  Speaker 6 1:07:28
-Okay, that sounds great.
-
-  Speaker 3 1:07:30
-Yeah. And then, if yeah, of course, as always, if there are any questions we can either log them all up and save them for next Tuesday, or we can do a little hockey sync stuff. Whatever we, whatever we're feeling,
-
-  Speaker 1 1:07:41
-Yeah, I think maybe what we can do, uh, Abhishek and Raul is, maybe, um? So, if we go with spark declarative pipelines, uh, Abhishek. And I'm not sure how much it invalidates of the DTC work that Raul is implemented. You know, yeah, um. So, maybe we can go over?
-
-1:08:04
-Yeah, we'll have to go over what we implemented in terms of. Did you see that we currently have? And then, um, maybe we can work with the gay bricks team to say, like, how can you replicate this if we start to clear the pipelines, right, perfect?
-
-1:08:25
-Awesome! Well, this is a great um.
-
-  Speaker 3 1:08:28
-First iteration, I guess of the first, first, great first day. It's like a, it's like a startus on a venue, I guess, um, back to school in September. It's good. Yeah, yeah. Um, but yeah, thank you. Thanks for taking the time guys. It was good to to walk through all this stuff and getting the nitty-gritty.
-
-1:08:45
-I'm certainly gonna have to learn a little bit more about how accounting actually works because some of that was some of the diagrams at the beginning. I was, like, oh gosh. But uh, we can. We can work through that. Yeah, yeah, great to great to chat with you guys.
-
-1:09:01
-Perfect! Awesome! Thank you! Thank you for the day, guys! Thank you, but.
-
-  Speaker 4 1:09:16
-Okay, it's okay, done.
-
-1:09:25
-What? What do you want? Go to go to create Leo.
-
-  Speaker 7 1:09:36
-I said, go to clay. I said, go to crate.
-
-1:09:45
-I said, go come. Come go!
-
-  Speaker 4 1:13:06
-So you can make it as I'll be on vacation.
-
-
-
-
-  Speaker 1 00:00
+   Speaker 1 00:00
 Who basically like make changes to the model and deploy those changes quickly. You know what I mean? And now, like what, I'm kind of looking clear about, is like these, like, uh, um, you know, between perspective Creative pipelines, um? Make this similar Evolution cables, right? Um, like, I guess one, is it possible via via notebook, and when we do evolve the schemas like, do we still have to go to the ml Ops platform?
 
 00:32
@@ -1172,17 +356,949 @@ Like after we execute the code. I don't know if there's another check that we ne
 Yeah, like, so I really want for a Dev, right? Let's say if I'm developing a pipeline, uh, let's say, all this code is generated, right? From here. Also, I think we can trigger it. There is something.
 
 25:12
-We can trigger this pi
+We can trigger this pipeline. I can. You don't see how the data is doing how I'm populating it. I can update my test, you know, certain situation once I'm happy. Then you get things will push it. Where we have to push it. Once we have the skills notebooks ready, we don't have to even write this code.
 
+  Speaker 1 25:36
+Even, uh, even like real. The reality is is like, from Json to this, you don't even really need an llm to generate it like. This could be a script, you know what I mean? Yeah, like, it's. Yeah, now you end up using llm for everything. Skill. Basically, we are just triggering it, but internally, you know, skill will have those codes.
 
+26:05
+Seven on our local. Yeah, I know. All I'm saying is like, we don't even need like a skill in the in the sense of like called the llm to build the code for you. It's like from that. From red Json to the SQL, you know to these create statements like, and this.
 
+26:21
+Yeah, yeah, it doesn't really have to be. It could be code instead. Like, it's basically like, you asked the AI to generate that code once, and then that's what you use, you know, going forward, right? Okay, yeah. Okay, anything in here is, like, what I don't see is, like, so what, we're also going to want to add, right, is like, we're going to want to have the table descriptions we're going to want to have the.
 
+26:44
+The descriptions for each column. And then we're also going to want to specify the foreign key relationships.
 
+26:56
+Right?
 
+  Speaker 3 27:03
+It. It's
 
+  Speaker 4 27:04
+Already there in the Json, right? Mike, I think, yeah,
 
+  Speaker 2 27:07
+You look at this. Okay, so again. So, this is one pros and cons of streaming versus our badge. Violet lag doesn't support, like, uh, you know, defining the relationships.
 
+  Speaker 3 27:23
+We do have option. Yeah, yeah, yeah.
 
+  Speaker 2 27:30
+Like, we could load them via notebook if we wanted to right.
 
+27:39
+Once we create it, I think yes, can think yes. Like, you can use a notebook to write into a streaming table. It doesn't have to be a spark declarative pipeline, right? And it should be no, but you know, like, while experimenting this, what I realize is, there are various metadata databricks internally used, and like.
 
+  Speaker 3 28:00
+Most of the time. Streaming tables are meant for the sdp approach.
 
+  Speaker 2 28:11
+Metadata. Like it. It keeps track of all the hops.
+
+  Speaker 1 28:15
+To be honest with you. Maybe I'm just getting old and like, well, I mean, like, I haven't myself written a spark declarative pipeline, so I'm really going to rely on you to pick the way you
+
+  Speaker 2 28:27
+Know. As I say, write it myself, you know what I mean.
+
+  Speaker 1 28:31
+And then, like, I'm not getting, I'm not gonna be comfortable, you know, because, and in notebook, I know exactly what to do. You know what I mean?
+
+  Speaker 2 28:41
+Foreign. We did it right. Like, it's straightforward. Yeah, exactly. So, I was, like, am I? Are we introducing a layer of complexity with despark declared pipelines, right? I don't know, like? I know people pounded like, you know, bang the table. Based off of them, but like?
+
+  Speaker 1 29:04
+Yeah, I think I'll come up with, you know, what's possible, what's not possible, and then collectively?
+
+  Speaker 2 29:11
+Yeah, yes, I did. Sorry, intuitively, you know, there is no complexity if you see on this with cream. There is no complex. Yeah, yeah, yeah, you know, I know, like, but like, um? Like, I'll give you an example, right? It's like. I can't. And I, I can't run this step by step.
+
+29:37
+You see the result, right? You cannot. So, yeah, you have to. Only thing you can do is that you can take this and see how your data is getting Mac, right?
+
+29:55
+Go ons to Sailboat. But for example, CBC, you can't board once you define it. Is, then you know your understanding that. Okay, you are you are doing CDC based on this two ID. Yeah, I realized that we need Loop timestamp, right? When I was writing this step sequence by?
+
+30:29
+Yeah, but like, in this case, I went with business yet. But, yeah, it's. It's then, it's a poor understanding like that, how it will work. Yeah, and I think I removed it, but it's like. Has.
+
+  Speaker 4 30:49
+One more thing is like with a with this SDP. Our entire pipeline will be disconnected, right, because data collection, and uh bra in loading into bronze tables will be in airflow, and then this transformation happens in data breach STP and then business event generation again uses airflow, right? Uh, well.
+
+31:11
+It one way or the other, like we would separate out those individual steps as airflow tasks. Okay, you know? Because.
+
+  Speaker 1 31:20
+I think the last thing we want is a very, very long spark declarative pipeline. Yeah. You know what I mean, like I wouldn't want to write, spark the creative pipeline from like ingestion to canonical data model transformation, then into business events. And you know what I mean, because? Um.
+
+31:38
+The other thing that there's no, you know, at the end of the day, then you have to replay the whole thing right now. Like whether you go with a notebook or spark declarative pipeline in either approach, I don't really want like these huge mono notebooks where it's like, I open up the deck, and there's one single task.
+
+31:51
+Yeah, you know what I mean? Um, I'd rather have like that logical separation of Duties, or as I can be a load to bronze. Now, I'm going to load silver, and now my last step is generate now. Maybe you'll have some steps for data quality checks and whatnot, and then you want to generate your business events, right?
+
+32:08
+Yeah.
+
+  Speaker 2 32:12
+So, yeah, this boil it all right now. What we are thinking is just, you know, belongs to Civil. And then. Even imagining. You know from, it will be just one task, right? Correct? I'm calling this pipeline so basically.
+
+32:33
+In equal, three steps are modest. But what BQ we might have, maybe I don't know? DQ the my types publicity by playing? Because we've already develop using notebooks. I'm not sure, like, yeah.
+
+  Speaker 4 32:49
+If I think
+
+  Speaker 2 32:50
+It will change.
+
+  Speaker 1 32:51
+Yeah, yeah. They also haven't also like what they did was, like, it seems like they have some framework, and then they have a yaml, where they defines the rules.
+
+  Speaker 2 33:02
+Yeah, yeah, basically, let's say we here at the end, right? So pure notebook, or sorry the controls you created, right? It will stay as it is. The only thing is how we are capturing the linear rate. So, here I will have insert into your tables. Engagement rates from here.
+
+33:21
+So, like two, three steps are removed from your notebook web, basically getting the count. That's it.
+
+  Speaker 5 33:29
+But
+
+  Speaker 2 33:30
+It's not like, you know, entirely everything will go to waste. But yeah.
+
+  Speaker 5 33:35
+And because see
+
+  Speaker 2 33:37
+Another thing if there is any DQ problem, right? I don't want my. Okay, that is again a decision. But let's say, if there is a serious DQ problem, I don't want it to load inside my silver, right? Uh, yeah, so that's another requirement that we have is, like, anomaly detection.
+
+  Speaker 1 33:56
+And yes, setting some kind of threshold to be like, is this? There's this thing, totally crap, right? Yeah, got it, so?
+
+  Speaker 2 34:03
+Like, we are saying that if there are issues will be loaded, but okay, yeah, for you know, five percent of the issues, but like, entire, like fifty percent of the data is. Yes. Then I, we might need some integration here, right? So there will be a lot of. Cotton screen 10 packs is here.
+
+  Speaker 1 34:23
+Yeah, like, for example, you can't have duplicate IDs, you know, with create
+
+  Speaker 2 34:29
+Ids, another positional values, right? However, now your contract,
+
+  Speaker 1 34:32
+Like that kind of stuff, and that kind of those kind of tests. I'm perfectly fine with running in the bronze tier right before we load the data in. And then. Once we load the data in, we'll be more tests. Correct? Yeah, well, our business, even Google.
+
+  Speaker 2 34:59
+All right. Who else is out of tokens?
+
+  Speaker 4 35:03
+I myself I got over like step number 10, I'm using the David other one. So, I think I'm close to expiry. But yeah, uh, you guys have clotted, right? Uh, Mike, you have it.
+
+  Speaker 2 35:19
+Um.
+
+  Speaker 4 35:24
+I got my access to Devin. It's like same as co-pilot. It's the folk of core vs code, so you know you have get your own, uh? Accounts inside Devin. Yeah, like, it's easy. I think you need to get one, uh, rice, one Marketplace, and Mike need to approved.
+
+  Speaker 1 35:44
+I, uh, I wouldn't go any, like, honestly, like, um, they asked for two names from each team to put on a pro, and I gave them both. So, yeah, I think, Barb, once it is download. Yeah.
+
+36:07
+Yeah, I don't even remember, yeah.
+
+  Speaker 4 36:11
+Getting close, okay?
+
+36:17
+What I'm saying is if?
+
+  Speaker 2 36:21
+I'll get to ask, can you focus on database skills? Yeah, okay. What is available, we can use it, um? You know, just just. Sdpn notebooks restore? Yeah, okay. And then once we have a look at them defined, then you can update the skills. Um, I don't have first draft of skills for this model, and then you can update on top of it.
+
+36:51
+Yeah, send me send me.
+
+  Speaker 5 36:55
+Some new is the, uh, let me know when you have the data model in the repo.
+
+  Speaker 1 37:02
+Um, I'll clean it up. And then, once it's cleaned up, I'll let you guys know and then publish that new data model into.
+
+37:14
+Our Silver's here. Uh, and I'll try to clean up the the Json and the the table definitions and everything as much as possible, too. Okay? Yeah, uh, something I will wait for your option.
+
+37:32
+Because mine is totally prep, no? Okay, okay. And I think, though, that, um. So this one, like the like, no system from no system two, right? And we can remove. A record Source from all of these tables? Yes. Okay. Ingestion pattern. I think we can remove from all of these tables as well.
+
+38:01
+You just need in one place.
+
+  Speaker 2 38:07
+Right?
+
+  Speaker 1 38:08
+Do I have it in the other ones, though? No, okay. I think contract. Ask kid. We need to remove it or sorry. Rename it. Contract e or something, like that, contact ID. Because? It is not a surrogate. It's not a generated one. There is no hash. For something on, contact us okay.
+
+38:32
+This one. Yeah, yeah. Uh, this. This is the contract ID. Okay.
+
+  Speaker 2 38:44
+Okay,
+
+  Speaker 1 38:45
+But like to be honest with you. I'm like, I'm kind of internally struggling whether or not I need both of these tables. Which contract
+
+  Speaker 2 38:54
+And congratulations, you need actually, Mike, you need it. I know we've got a discussion before, you know. But, like, okay, you know what? All right, let's do it definitely. I hate it.
+
+  Speaker 1 39:08
+Number one. It's like. Like, it's like, I always want to go off of this table, right? And but I need to join to this table in order to get the source system. Or if the source system? And the contract ID was just in this table, then I would need to state.
+
+39:31
+I don't know why I need this table. Right? See, um?
+
+  Speaker 2 39:44
+Like, I know that this is like a unique set of contracts that we have from each system, right? But, like, so is this?
+
+  Speaker 1 39:53
+It's not unique, but they're all there.
+
+40:01
+Let's see.
+
+  Speaker 2 40:05
+Oh no. So what we can have is we can have Source system again in Bridge contract. Okay, so that you will need to join. Particularly for that. So, no, to me, you know, if you're joining it on contact, it doesn't. It's not a costly operation. It's, it's a very limited data compared published contact.
+
+40:28
+But let's see. You want all the contracts and all the latest information. You won't need to go to bridge, get the max. You can work off directly from contract. I do need Bridge.
+
+  Speaker 1 40:45
+No, so, can you click on contract once? And I want all the contract. All the available data, right?
+
+  Speaker 2 40:56
+I can join on position. With the max.
+
+  Speaker 1 41:01
+I only want the latest version. Yes. Right? But actually, I need business state in this table too.
+
+  Speaker 2 41:12
+You don't need it business need because you were saying at this point. Give me the latest data, right? You are not saying as of this date. You're not going point in time, so bridge contract is pointing time. Contract is always greatest.
+
+41:34
+Yeah, so if you go contract, so you have, let's say 100 000 contract, right? Get the IDs and join on the tables. But you get all the latest information today.
+
+  Speaker 1 41:47
+Well, I, I guess I can't go to this to my events, the only events. My name is actually 3 instead.
+
+42:01
+Because their point capacity does not exist. Yeah. Can you click on events one second?
+
+42:15
+You know you calling Google event because conquered as Citizens is?
+
+  Speaker 2 42:28
+The contract. The contract table is. Removable, just with a view on top of bridge contract.
+
+  Speaker 1 42:45
+You know what I mean? And it won't be that costly of a view, right?
+
+42:54
+Yeah.
+
+  Speaker 2 43:02
+What do you mean?
+
+  Speaker 1 43:03
+Um,
+
+  Speaker 2 43:03
+You have 100 000 record on D1, only two. You're going only two thousand records. Uh-Huh! Current. If you do Max on latest business date.
+
+43:16
+I think I would do Max on business. I would. I would do Max. I would do Max load timestamp for a business date.
+
+  Speaker 1 43:23
+But I wouldn't do so because if I make a view on top of bridge contract for Max. Um. Max load time step! For like a parameterized business state, right? So, it's like, I filter on a given business date. It's just going to give me the max load timestamp for that business date for for a source system too, right.
+
+43:45
+Like, let's say, put Source system.
+
+43:50
+Contract. ID. In here. Right?
+
+43:56
+Source system and contract ID.
+
+44:00
+I can kind of do? Yeah, Max.
+
+  Speaker 3 44:06
+Yeah, actually, no see. I can't do Max load timestamp by business date.
+
+  Speaker 1 44:13
+That related system as first that's that's for the that will give me the last system that loaded data in right.
+
+  Speaker 2 44:23
+This is interesting. By whatever the delivery mechanism was.
+
+44:37
+Right? But each data setting got delivered.
+
+44:45
+System, resource system, and region, right?
+
+44:59
+If we do that, so in in that case, right again, coming back to the whole example, you had hundred thousand or even 2000 on Depot. If we both, like, on low time, you will always get 2, 000.
+
+45:16
+No, no, I don't.
+
+45:23
+You only receive 2000. Um, likes of load timestamp rate. Yeah, per business date. For business data, so you will only receive 20.
+
+  Speaker 1 45:38
+No, cuz on day one, right? Yeah, yeah, yeah.
+
+45:56
+But then again, it's wrong, right? He should not have got.
+
+  Speaker 2 46:01
+200.
+
+46:05
+Yeah.
+
+  Speaker 1 46:10
+But so what? The question is answerable, right? Via some operation rate. And this is screwed up too actually. They shouldn't be going here. I don't think, actually, I know why it goes here, but it's kind of Steve. I think both of these things together include or creating complexity.
+
+46:37
+I think that this should actually be going to here as well.
+
+46:46
+But no, no.
+
+46:51
+Cuz this is its own. Load process. Yeah, it was separate timestamp, right, timeline? Yeah.
+
+47:01
+So, it's like, you kind of need this concept. If this is on its own timeline? And this is on its own timeline. Then, this is basically just saying.
+
+  Speaker 3 47:13
+If you only keep Bridge contract, we will end up again with. Snapshot. System. Only thing is, we are doing.
+
+  Speaker 2 47:23
+Sed on the descriptive fields. Yeah, but that's, that's the right. That's, that's how you would design scd2 for. Financial systems. Right?
+
+47:44
+Is
+
+  Speaker 1 47:44
+Financial systems. You never want to update. It always has to be a new insert, right?
+
+  Speaker 2 47:47
+It will be snowfall. Yeah, I agree, yeah, but it's not a snapshot, you know, like? This is the only thing that's a snapshot. Everything else is a CD2. This end business events. Measures 0 to yes. Yes, they are so, so that's why, like, like I said, like, descriptive fields are only a CD2.
+
+48:08
+And just correctly, which is correct. We want what happened. What's the amount at that point in time we need that? But I think, okay, can you click on contract again, um? I think you mentioned. Drive and why we need it because we have? Other entities that are coming on a different timeline, and this is the bridge.
+
+48:31
+For those entities. Yeah.
+
+48:35
+But.
+
+  Speaker 1 48:42
+See now again to argue. Contract SK, even though here you have mentioned uid. In the implementation. Um.
+
+  Speaker 2 48:54
+It is concatenation of. Source system and contract ID. Which is never going to change.
+
+49:05
+Correct? If you do hash as well. It will. It is not going to change.
+
+49:17
+Technically, we can again link to bridge contract. Even though a different timeline.
+
+49:30
+I should probably jump to this other call.
+
+  Speaker 1 49:32
+But let's think about it before we screw this up though. Okay, bye.
+
+  Speaker 2 49:59
+So, yeah, like,
+
+  Speaker 4 50:03
+I just write a few questions like, um, you know, I had, like, uh, these pieces, I know, like, separately, but I'm just struggling to put them together. So, let me start like, uh, so we, um. Okay, first. I'll go with the STP things, so hdb, the SQL I understood.
+
+50:20
+Everything is good, but at the end of the day, someone has to create a pipeline using that SQL, right, like that's a transformation SQL that that will be Auto generated. This the create table statement, those kind of things, but? Someone has to register the type pipeline right in the data bricks correct.
+
+50:35
+Okay, so
+
+  Speaker 2 50:36
+That is one more thing. I will tell you like, I got you like, you were saying that from UI, somebody is to do something, yeah?
+
+  Speaker 4 50:45
+Uh, no, there is, uh, okay, so I'll explain. So, what happens is? Oh man. This piece, right? Yes, if it download it?
+
+  Speaker 2 51:09
+That is something that is something what I have to show.
+
+51:17
+Download us okay? So, this is our pipeline. Yeah, package one second. Pipeline is made up of this folder. Okay, that's it. Okay, it's where you deploy. So, if I deploy it here somewhere under transformation, right, it will be considered as pipeline. Okay, okay, so every SQL is a pipeline.
+
+51:41
+No, no, no, no? Um, this folder you see is a pipeline.
+
+  Speaker 4 51:45
+Okay, correct sdb test one. Okay, so we have
+
+  Speaker 2 51:48
+Only one pipeline. A pipeline can convert n is equal, correct. So, let's say, right now, I'm experimenting. So, everything is in one SQL. Okay,
+
+  Speaker 4 51:56
+But I can put it in another SQL as well. Got it, I can separate it out. So, when I say pipeline, you always think this folder. Okay, yes. Okay, once we. Okay, so now you see the structure of this folder. It's simple. Yeah. Um, it has many transformation, right, correct.
+
+52:12
+So, this is our pipeline. Okay, what I was saying is.
+
+  Speaker 2 52:18
+We will have. Pipeline. Uh. Same one. It will only have this thing. Put the create syntax, create alter. We will have. Pipeline. Okay, so always. Silver will run first, right? When we deploy deliveries during deployment, so all the tables everything is uploaded. And then, whenever the data comes right, these are this syntax.
+
+52:54
+All right. Got it, right? So it will run. Now, what happens is? These tables will be used by many other Pipelines correct, so I have Opus x, y, z, yes. So, that's the reason like, I separated this thing out because? Otherwise, you have to update in each and every pipeline correct.
+
+53:13
+Got it, so any, any schema evolution? We will update this create silver like this table.
+
+53:23
+So now! Okay, now, deployment thing. So, let's say, via your, this is DLC, right?
+
+  Speaker 4 53:32
+Okay,
+
+  Speaker 2 53:32
+Once we have the model, it's basically this creates SIM syntax, right? So, I have an idea I'll create a skill basically scale and script, right? Which will generate this. Got it okay? Now, let's say we are developer, right? We are somebody made some changes in the model. Yeah. So, this model is Json file correct.
+
+  Speaker 4 53:58
+We'll ask our scale model to, you know, update it. Yeah, okay. Now, this is updated. Yes.
+
+  Speaker 2 54:06
+Then there will be another skill you will ask to update the transformation. Got it, yeah? The reason is when you add a new column, you need to add some transformation here. Yeah, correct. Okay, based on UDC mapping. Okay, something. Okay, some things okay. Select. Now, there will be another scale, so this is silver, right?
+
+54:29
+Yeah, what Mike was saying is? Um. In. There is no column called as contract SK, right, correct, so there will be some description here so? Contract. Sk is made.
+
+54:54
+Plus, you know, position plus contract? ID.
+
+  Speaker 4 54:58
+Okay, okay, so, and then I can understand this. Yes, and okay, create it. Okay. Uh, this is, like, very silver, like.
+
+  Speaker 2 55:09
+And that's the reason I'll ask. I was asking, like, what happened if?
+
+55:22
+Okay, I got it all right. Okay, who has? Observe and like, see, technically, if I make a change, it's not possible for you to, you know, open every time and see correct. There is a guy called Israel, okay? Even good! Then that responsibility is out of us, right? We generate this.
+
+55:51
+Somehow, what we will figure it out is once, let's say, on my machine, everything is generated okay. I can just, you know, run this five line. Correct. Okay, I will go see the data generated. Everything is good. Get checking and then deploy. On airflow. So, now, coming through. Your, I think.
+
+56:15
+Statement. So right now.
+
+56:22
+Data collection till later. In this case flow + s DB, what will happen? Okay, data collection bronze.
+
+56:43
+Uh, DQ.
+
+56:47
+Alex. This is the then there is some DQ here as well. Yeah. What will happen in this case is? Same thing. Data collection will be there. Yes, bronze will be there because.
+
+  Speaker 4 57:07
+Okay here in this case. You have to do let. Yes. Deployment. Correct? Black drones deployment.
+
+57:24
+Uh, silver data setting. The notebooks.
+
+  Speaker 2 57:28
+No, no data set.
+
+57:34
+Request access? Yes. Okay, so in this case, and it will be only bronze. Correct, because this portion is, this is correct. So, silver model what I just showed you, yeah? And then silver pipeline. Okay. This notebook is replaced with the simple syntaxes.
+
+  Speaker 6 58:04
+Hmm,
+
+  Speaker 2 58:04
+All right here, you have to manage your code correct. Here, you don't have to manage it. It's very simple, yes, equals? Yes, yeah, so? Okay, then again. What I'm saying is? We might have a DQ here
+
+  Speaker 6 58:18
+Correct
+
+  Speaker 2 58:19
+Inside it. I'm on outside. Okay,
+
+  Speaker 4 58:22
+It can vary where, okay, okay
+
+  Speaker 2 58:23
+In the same pipeline, so a job a pipeline can refer another pipeline. It can be like this or outside. Okay, I don't know. But, and then, finally, DQ will be here. So, in your air flow? You will see the state bronze. Correct. This thing will be the STP. Yes, yeah, you know that this is silver correct.
+
+58:44
+So ideally, I think I will keep like this only.
+
+  Speaker 1 58:48
+Yes, it's the same thing. Correct, got it. Q is also Pi blank, so it will be outside and let's say business event is a notebook so.
+
+  Speaker 4 59:03
+Makes sense. Okay, I understood. Now, does, let's have the support of like, we know that we can deploy the notebooks and run in the pipeline, the airflow is the same possible with the pipelines as well. Do you check it? Yeah, so I haven't tried it, but they have that in the documentation.
+
+  Speaker 2 59:32
+And just that. One second.
+
+59:41
+So, all in
+
+  Speaker 4 59:42
+All, my main worries. And my biggest worry is.
+
+  Speaker 2 59:47
+Uh, and let's open the documentation. What I will tell you okay if this is wrong?
+
+  Speaker 4 59:54
+Okay, I mean the model is correct,
+
+  Speaker 2 59:58
+So your table will get created wrong or updated to get wrong. Your pipeline will be running then okay, okay, correct, you know, but so, yeah, sdlc is a challenge correct, but on, now, perfect. Let's say we are? Focused that we generate our Json very well.
+
+  Speaker 4 1:00:21
+This is the foundation. Yeah, and. Uh, the problem.
+
+  Speaker 2 1:00:32
+No, I think it's not a problem, even if it fails right. On pipeline, you will get like error message that. Uh, for example, you look at the repair error message that syntax I read this. Correct this line, correct? So, even though we can't run individually like notebook, but we exactly know what?
+
+1:00:54
+Yes, fail. Okay, got it. I don't know, makes sense. Yeah, understood. And this model, Jason, is showing is the 3nf model, right? It's going to be.
+
+1:01:15
+Okay, so got it. Okay, so understood. And, um, just, uh, can you show like, tell me that connector because I might need it for my skills, right? Like, the left connector?
+
+  Speaker 4 1:01:29
+Select
+
+  Speaker 2 1:01:30
+Connector like
+
+  Speaker 4 1:01:31
+This SGP pipeline deployment. The operator op. Yeah, sorry, okay, okay, I was like.
+
+  Speaker 2 1:01:44
+One second, that is, let me also try to open it. Okay?
+
+  Speaker 4 1:01:51
+Okay, and if you get chance.
+
+  Speaker 1 1:01:53
+You just try this thing out from airflow, it's a scene. Okay, decline on book instead of that. It's something like Bitcoin driving. Okay, got it. Yeah, just send me this link for me. I'll try it out.
+
+  Speaker 4 1:02:07
+Induces guide. Okay, perfect. Okay, now, got it. So, let's say, in a, after everything is set up, our goal is, like, um, the the business people will have some requirements like a new source system coming up, or some changes to the data model. Those kind of things. So,
+
+  Speaker 2 1:02:23
+Yes, they will modify
+
+  Speaker 4 1:02:25
+The Json model model Json data model. No, no, no, no, so okay. What we need to do is, and now, um.
+
+  Speaker 2 1:02:35
+What we will do is.
+
+1:02:42
+I haven't looked at it, right? Yeah, okay. So spack kit, we will have some. Um. Uh, what is this business requirement so it correct command, select slash, analyze, or okay, something? Business requirements correct? Go to the Spected correct. Okay.
+
+1:03:06
+I'm just putting it okay?
+
+1:03:14
+Business.
+
+1:03:19
+Um, and here it will be no. It will be. Modeling team. Yeah. Use this business. Not MD. And updates. Uh, you know, dot model.json correct? I don't know. And because there is no other way right, like we have to manually do it or they use this tool or they.
+
+1:03:51
+Uh, one thing is like they can chat with a co-pilot, right, correct? So they can do it right mapping description so? Mapping description. Etc, etc.
+
+  Speaker 4 1:04:09
+Then, so this is specs. Speculate scale. And once we have model.json, right? So, this is the output correct. So model.json. 2. Skill /, you know? Conversion table. Okay. Pipeline. Uh, you know?
+
+  Speaker 2 1:04:42
+Uh, silly one changes, right?
+
+1:04:51
+This is one. Yeah.
+
+  Speaker 4 1:04:54
+Then model.json. Skill /, let's say. Sdp.
+
+  Speaker 6 1:05:11
+So,
+
+  Speaker 2 1:05:12
+Source pipeline. Yes, data source packing.
+
+  Speaker 4 1:05:16
+Um, one change can have multiple Source system changes, or it's always one.
+
+  Speaker 2 1:05:31
+So, no, so model.json.
+
+1:05:38
+Plus business requirement. Correct?
+
+1:05:44
+Correct? So mostly, it will. Right now, we are thinking, it's one, but it can be one minute. Okay, but let's focus on one. All right, okay? Um. So this is done. What next okay again model.json here? It can be skills. Slash notebook. I don't know. Okay, I flow or STP.
+
+1:06:14
+We once decided will use either of them. Okay, so.
+
+1:06:22
+What's next? Once we have done this. Yeah, so model.json.
+
+  Speaker 4 1:06:35
+I'm just writing DQ. Yeah. Okay.
+
+  Speaker 2 1:06:56
+100 + this even business requirement.
+
+1:07:02
+Correct? Models plus.
+
+  Speaker 4 1:07:06
+What is that because model plus requirement?
+
+  Speaker 2 1:07:13
+So, once you have your modeling the Json correct, correct, you have business requirement correct? You have to update the data pipeline correct. You have to update the data quality rules you have to update business requirements. Sorry, business events. Okay, even so, that's what I can just required.
+
+  Speaker 4 1:07:35
+Product.
+
+  Speaker 2 1:07:36
+So these are all the different skills, right, like one, let's say I am working. Mortgage is working is working correct, okay? Uh, this DNA is working expected. Let's see who are working.
+
+1:07:50
+Now, this is done. We are ready, and here, once we are ready, let's say. And then, here it will be. Um, you know, GitHub action things? Oh, right now, I'm not putting it a scale. Okay, we deploy it.
+
+1:08:12
+Arnold's automation, right? Like, whatever? Okay, those kind of things okay? Yeah, so this is what we are trying to do. Okay. Just one thing.
+
+  Speaker 4 1:08:26
+Okay, I think, um, okay, so this is not, uh, like, from start to finish, but some one one person will do it. It can be multiple correct. So, like, like, let's say today, I come up with the requirements. I I, if we didn't respect it and it will generate the?
+
+1:08:44
+Business MD file for me, okay, and that will be stored in conflaints or somewhere, let's say. And then change
+
+  Speaker 2 1:08:51
+It to requirements. Okay, okay, and then
+
+  Speaker 4 1:08:54
+Once that is generated someone next day, or like the same day modeling team can use that requirement file from Confluence, and then generate the model Json again whenever they will be able to do it. So it's like a separate stories for everyone. Correct, okay, but everyone will do it inside vs code, and they will use the skills that are appropriately.
+
+1:09:15
+Inside vs code. Okay, so now what I am thinking is?
+
+1:09:22
+We will have. Let's say this is main branch, right?
+
+  Speaker 2 1:09:28
+From here, we will have our. Um. Feature. X. What I'm saying is from here. We will have this feature.
+
+1:09:45
+This is generated by spectator. Correct?
+
+1:09:53
+This is your top level, right? From here, we will have. Or maybe at this level, let's expect it as an auto generator. Okay, plus your. Model.md. So you have business requirement here. Yes.
+
+1:10:16
+All right. And let's say. Generally, Gina, and. Guys, who does the modeling? They will do the business requirement, right, correct, or mind? Once they are ready, then we will have all the vermism Parts here. Ability, if if it is a simple change, right? Just pipeline update. Nothing on the business, even nothing okay, and then I will invoke only this and get it done.
+
+1:10:45
+But let's say if there are like multiple level of changes. Uh, then, same thing, you know, DQ mortgage will do it correct, but what what I'm trying to say is, we are all referring to the same? Requirements. And same model correct. If any of this thing change, then again, you need to do this again.
+
+1:11:09
+Okay, yeah. Perfect, perfect!
+
+  Speaker 4 1:11:13
+Okay, yeah. So, I think yesterday, when Mike connected you, this was his requirement. So, ideally, um, when the requirements come in, right? They discuss on a call or like we discuss anywhere and the everything in detail will be updated either to a zero story or a conference page, or a combination of these two, like, you create a story, and then you you refer a conference document where every requirement is detailed.
+
+1:11:36
+Okay, everything is there. That is our require like that is our first step. So once that is done, everything needs to be automated. Ret. That step on meaning we will feed that jeera story, or or a recording, like the Aid and recording or their or a conference link you come to vs code.
+
+1:11:52
+We use a step by step, like the spigid rbcs, provided every command. Like every stage, they have a command like first generator spec, then plan, then Implement, then verify review like they have every step. So we do a single, uh, like step by step, using that jira story and.
+
+1:12:13
+Everything will be done in a single workflow. Okay, at the end of the that workflow, you have your code ready. Tested tested in databricks, like using the connect database connect, right, tested everything is verified. All all score reviewed. No security vulnerabilities. Everything is good and you create a PR so that that will be the end of workflow and you go to PR.
+
+1:12:35
+Someone will review it, you merge, then the deployment process will kick off. Am I right? Like, this is the thought process behind. This is this correct? That is correct, but okay. As I said, right, let's say.
+
+  Speaker 2 1:12:50
+Flip okay? How do I put it if? If everything has to be done in single workflow, we don't need queuating. You know, we don't need? Uh, we ourselves can Define it everything. But what I'm what I'm saying is like, realistically. Uh, like how I am categorizing it if a change is small, we
+
+  Speaker 4 1:13:17
+Can do
+
+  Speaker 2 1:13:17
+It and finish it in a single step, right, correct as DB pipeline. There are no additional DQ business event is also standard, right? We can do it, but if there are changes? Changes to the DQ right framework. You can just do. Model or business event, then what?
+
+  Speaker 4 1:13:42
+No, I mean, yeah, that's what. Like, let's say, um, let's begin live example. Okay, there is a model, and then we made some changes to the model. Okay, so your requirements are coming and using those requirements we generated. We updated the model using your skill and your schema forge.
+
+1:13:58
+Like, let's say. Okay, so one give me one second, yeah.
+
+1:14:07
+Okay, so, yeah, once that data model is generated from, we have the business requirements. Also, the model Json okay, and from there, we could parallely start these three works, updating the notebooks or STP, and then the business data quality and the business events. I think notebooks, STP, and business events are straightforward because we know from the model what we need to do.
+
+1:14:28
+But yeah, for the data quality. We have to establish new rules, right, like this
+
+  Speaker 2 1:14:34
+Will also be. For it. Okay, now you are saying, okay, see. Pipeline. Initially, we have this, you know, layer of work, correct? Once we have definition, right? We can easily generate the pipelines. Notebook can be easily generated clue. Also, they are tools basically, yes. This column. And this value, right, should be.
+
+1:15:02
+It will be
+
+  Speaker 4 1:15:03
+The requirements itself. Yeah, that will
+
+  Speaker 2 1:15:04
+Be in the requirements, so actually work correct.
+
+  Speaker 4 1:15:06
+So that will be generated business, event generated, and then the entire pipeline will be tested in the data bricks validated. Maybe we can use a Sandbox in round one to mark up some data and see if everything is working like, yes. If you don't want to do it against the real Dev data, then that is our testing integration phase, so that integration passes.
+
+1:15:25
+Then, we are sure that this pipeline is ready to be deployed, so. We are created and we are good. But yeah, yeah, but what I'm saying is let's have, like?
+
+  Speaker 2 1:15:37
+Okay, this can be done, you know, in a single like 10 minutes correct. Okay, requirement.md is generated. We did it. We were on a call. We need it. Yeah, okay, now. Um. If it is a complicated change? Model.json. And Mike. Just now on the call said. Rajan is the owner correct?
+
+1:16:01
+Okay. Definitely it! The model got updated. According to us, it's it is good, right? But then, Rajan has to
+
+  Speaker 4 1:16:11
+Uproot, okay, any changes we do before we kick off that automation process. The manual approval step is what you want, right? Like, something,
+
+  Speaker 2 1:16:19
+Yeah, so I think what we'll do is, let's say, we will commit this as a temporary comment.
+
+  Speaker 4 1:16:24
+Okay,
+
+  Speaker 2 1:16:24
+So, uh, you know,
+
+  Speaker 4 1:16:26
+Got it. It'll be valued into two steps and one until model Json generation is the first step, and I will wait until it gets approved, and we get the go right. And once that is done. In every data automation will kick in, which does everything correct correct. So now, this approval right now that let's talk about approval.
+
+1:16:45
+There is no, like, button or something correct. What will happen is? There is a commit. Uh, that happened, right? Yes. This automation made some changes on the model correct. Um. There are. What is this? What the hell?
+
+  Speaker 2 1:17:11
+So if you there are any changes, right? There are version being tracked
+
+  Speaker 4 1:17:14
+Correct
+
+  Speaker 2 1:17:14
+If you had a column version is tracked. If you remove a column, right? Yes, all the changes. So, Raj Raj will see if there is no description. He'll edit everything. Okay, okay, once he is done. He will update the gate right is committed. Yes, yes, but I think we are on the same working on the same Branch, right?
+
+1:17:39
+Correct? Or I don't know he, he may Fork it out.
+
+  Speaker 4 1:17:42
+Maybe, okay, that's fine. Like, as long as he permits. Okay, yeah.
+
+  Speaker 2 1:17:46
+But ultimately, our goal is everything should be on the single feature Branch correct. Okay, once he's ready, then we can. You know, again, do this in a single step. Yes, rules will be generated, uh, we will verify. Okay, we have verified it. It will go to mangesh. So, again, same branch.
+
+1:18:05
+We will check it out. Yes. Yeah, so you know, manual? Steps will be here. Pause and get it, get it, get it.
+
+  Speaker 4 1:18:17
+But yeah, I think yeah, that being, I'm not sure, because at the end of the day, these things need to be run in someone's laptop, right? It's not like a as Cloud running this? Well, you get an approval, and then it triggers off the next step, I
+
+  Speaker 2 1:18:30
+Think I think you already solved this problem, uh, in data Marketplace, so like, and there's the reason I was showing you this. So, let's see this feature or this, you call it. As you know, feature number. 1, 2, 3. We all will follow this correct, and this is the high level story.
+
+  Speaker 4 1:18:51
+Got it okay, and then in your grid in, you know, working directory, whatever decision or something? You will have all these MD files, right? Yes. This guy did this correct?
+
+  Speaker 2 1:19:09
+Yeah, all of your skills.
+
+  Speaker 4 1:19:13
+Notes will be recorded. Yes.
+
+  Speaker 3 1:19:17
+Correct. So, what? And internally, we know the process, right? This is how the process is correct?
+
+  Speaker 2 1:19:23
+We are all working on this feature, so whenever everyone will commit, you know, like, under this blocks, yes, that will go into correct? Yeah. And that's how, uh, you know, like? There will be a prompt, not empty again. You have created. Physically, you know, they Zoom from this step resume from that step.
+
+1:19:43
+Yeah, yeah.
+
+1:19:47
+Something, something I mean. We need to think it through.
+
+  Speaker 4 1:19:49
+Yes, correct. But yeah, like having that approval step like as a single button, then
+
+  Speaker 2 1:19:55
+That would
+
+  Speaker 4 1:19:57
+Make our life very easy. But, yeah, again. Okay, all right, but I can, uh, like this is the whole thing that we are expecting, but some manual steps here and there. It should be fine because you know someone somewhere you have to pass it. And again, maybe give some.
+
+1:20:09
+Oh, it will be there. And yes, that's just like it will wait for days, right? Like, modeling thing won't replied immediately, exactly ex.
+
+  Speaker 2 1:20:19
+Okay. Com.
+
+  Speaker 4 1:20:48
+A combination of this fields in this field, so if one field changes, then we have it okay. Okay, so the next day, it's like it can be anything it, it, we, it might change, or it might not change. But okay, it depends on that situation.
+
+  Speaker 2 1:21:00
+And realistically, to be honest, whatever we have model till now. These are way too simple.
+
+  Speaker 4 1:21:07
+Okay,
+
+  Speaker 2 1:21:08
+Okay, this will be able to improve Concepts to understand, right? I mean, when we were debuting, read this than that. Yeah, yeah. But when things are more complicated when it is beyond our understanding?
+
+  Speaker 1 1:21:23
+How we will know this is right or wrong. There is no way, right? So, we need to rely on some overall step, and then again, they will say, oh, no, no, this is the problem.
+
+  Speaker 4 1:21:32
+Got it, got it. So just to put it in plain words, this 3nf is the the foundation model, meaning that it will in the future, also support any product. Any Source system coming in, but for now, we just modeled it. And then, based on our, uh up, incoming data like model changes.
+
+1:21:49
+Then we will evolve it as we grow. No, okay. Renf is a technical implementation. Yes, it has nothing to do with product or something.
+
+  Speaker 2 1:21:59
+Now, what we are mapping is a limited set of attribute that we are aware of correct. Okay from? Um. Castle. And as and when we see new attributes new product, we will keep on expanding this model correct. So right now, there are. Uh, you know, like, this table has only 10 columns, but it will go to 50.
+
+1:22:23
+Yeah, you see, there are only. How many? Tables, 10 tables. It will go to 20, right, so it will keep on like? Increase degrees. Okay, okay.
+
+1:22:42
+Well, yeah, um.
+
+  Speaker 1 1:22:43
+No, I'm I'm traveling tomorrow. Oh, you're going tomorrow tomorrow. I'll Monday and Tuesday I'll be off.
+
+  Speaker 2 1:22:54
+Okay,
+
+  Speaker 4 1:22:54
+And then the Wednesday is holiday, so I'll be back on Thursday. Nice. I didn't go today. Oh yeah, yeah, like, I couldn't do this. I'm alone. So.
+
+  Speaker 2 1:23:05
+Whenever I go office is empty. Yeah, man. Like, I noticed yet, like, and that there are breaks training day.
+
+  Speaker 4 1:23:11
+I'll give everyone a sin, but except that, like, you, you go there, you don't meet anyone. Oh, I
+
+  Speaker 2 1:23:17
+Want that deal. I was feeling so sleepy, exactly.
+
+  Speaker 4 1:23:19
+There's no company for, like coffee, or like your lunch, then you will end up like, why did I come today? I would have just spent my time in my home. Yeah, yeah, like it happened to me as well. Hmm, good. Okay, yeah. So, I think, uh, just send me you.
+
+1:23:36
+Did you send me that, uh, link, uh, I think, uh, that, uh, conferencing, yeah, and then, you also send me this, uh. Skill file or not. Skill file that the I got the Json model Json from, uh, mic, but just that schemaforge just for me to install and see visualizing.
+
+1:23:53
+Oh yeah, okay for me. Yeah.
+
+1:24:00
+I have it ready. Perfectly. Uh, why? Nice name should have been the first place. I don't know, it doesn't come.
+
+  Speaker 2 1:24:13
+Yeah,
+
+  Speaker 4 1:24:14
+There is one guy and he's not Indian. Okay, everything is happening for me. There is another. I died. Okay, this is Dan and then the link for the. Link is here. So, yeah, so what I'll do is you start with this?
+
+  Speaker 2 1:24:37
+Meanwhile, I'm figuring out the sdp you start with this. Okay, correct. Yeah, that's what I'm doing that because and then you explain me. What happens here? Yes, okay. Uh, don't worry too much on an oak, right? I think. Um. Might also entered the same thing. Yeah,
+
+  Speaker 4 1:24:54
+He wanted to have, like, understand what we are doing right this morning. So, you know, don't? I mean, keep it limited. Okay, this thing.
+
+1:25:09
+This skill, right? This skill? Uh, related to model.
+
+  Speaker 2 1:25:15
+That I'll iterate once. Yeah, you? You work on that. That's okay. And then, and then you review it. Yeah, okay. Sdp scale you take care? I think this one's a large as
+
+  Speaker 4 1:25:27
+Dq. Yeah,
+
+  Speaker 2 1:25:29
+Yeah. And what I'm saying is sdp and notebook have it? Um, you know, like, what is provided by databricks, right? Enter correct, correct. What we will do is once things are sorted. So, what I'm trying to do is?
+
+1:25:46
+Okay, um, so I asked databricks this thing, right? Streaming live view? Correct? And this thing. What is happening is? There are two different underlying technology being used. One is DLT one is sdp. Okay, okay. And I want to stick to one correct. So when we say sdps, it is equal one, yes.
+
+1:26:16
+This is correct statement this is working, but then we will Define a rule. That. Okay, this is the sdp scale, but you have to only. Do not take me.
+
+  Speaker 4 1:26:32
+Our Rules. Yes,
+
+  Speaker 2 1:26:35
+Rules that will Define it later. Once we have it worth perfect. Okay, sounds good to be. Yeah, yeah, and I think, uh, for the controls we'll connect later, I don't.
+
+  Speaker 4 1:26:48
+Yeah, I think that's that. That would be a, not a major change, but there will be some changes on it because we might not need, um, you know? They have their own locks, but yes, you said, we might copy it from there to our.
+
+  Speaker 2 1:27:01
+Yeah,
+
+  Speaker 4 1:27:01
+We can, you know, do this at a runtime itself. Like, if you are building some dashboard, we can refer from that even log table and
+
+  Speaker 2 1:27:07
+Do the transformation there itself,
+
+  Speaker 4 1:27:09
+Right, instead of storing it in a separate table. But yeah, that that comes later, but again, what do you think, like, uh, well, if you're going with the STP, then they have their event logs then. We don't need us right, like ours. No, no, no, no, no. What
+
+  Speaker 2 1:27:23
+I'm saying is event log is internal, and it's sometimes slow as well. Okay, but you're controllable, but but? The input, for example, record bound, right? Yeah, that will come from this. That, like I insert into this record account,
+
+  Speaker 4 1:27:37
+Got it insert into this pipeline. We can get this ID as well. So now there is a syntax. Basically. So, like?
+
+  Speaker 2 1:27:48
+Date, and everything got it. At which stage you are correct? Yes, uh, what the e-stage? What's the count? What's the status?
+
+  Speaker 4 1:28:05
+Um, like some payload object that contains all the split ups, like, what's the position count measured? Count like, simple for now, but we can, you know, enhance it. Yeah, so I think that that thing we can get it from here. Correct. Okay.
+
+  Speaker 2 1:28:21
+All right, okay, man.
+
+  Speaker 4 1:28:23
+Yeah, I think, uh, this is what I needed, all right, cool, okay, uh, yeah, I'll get started on it. Thank you, thank you! Thank you very much! Good one, bye!
