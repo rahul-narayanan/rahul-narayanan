@@ -1,1 +1,80 @@
 
+
+Um.
+
+For the Opus deposits, right? So, like, so basically, the product is deposit, and the subtype is demand deposit, right? Okay. But then, you see deposit account type. Right? And you also see deposit count classification type. Yes, you know? But, like, in this case, they put demand deposit here. So, that's good at demand.
+
+Deposit can only really mean one thing, you know, but uh, sometimes it'd be interesting to see what they did put in these columns, but sometimes it's like they don't populate anything in here. And then they put it into here. This deposit account type column, you know what I mean?
+
+
+Okay, so, like, in in art, canonical data model like, I've gone to Great Lengths to find all of these columns that we used to classify a product without, you know, putting into a hierarchy. You know what I mean, so? That's obviously like all the view like these shouldn't exist.
+
+
+These this one and like this one shouldn't exist because it all should flow into this. Uh, this hierarchy here, right? So? Um, my point being, though, is that? A lot of times, the true definition is kind of sprinkled around in different tables, and in that, and eodc is no different.
+
+Um, in in the loan space. For example, there's like a corporate loan flag, you know, instead of calling the product a corporate loan. So, yeah, there's like that kind of s*** scattered all over the place, and it's gonna be hard to know. But one way or the other, like your your process is gonna get a large chunk of the work done.
+
+
+It looks like, right, yeah, correct. And then, honestly. If you got to the honestly, like if you just got to the point that produced this Json object? You know what, I mean, okay? Like, here's the, if you had the what the step where you had? Here's the table. So for some product combination, here's the table.
+
+
+Here's the populate columns. Here's the sample values. Here's the data type. You know what I mean? Even if that was the last step. Like, I think that's my first step, you know. Okay, now what do I need to Maul this into the canonical data model, right? So? Yeah, because everything else of it's not popular, I'm not even going to worry about it, but if it's populated then, like, I'm going to worry about it, and then I'm gonna make a decision on should it.
+
+Where should I put it? What? What should I put and all this kind of fun stuff, right? Yeah, of course. Yeah, once we have that, I think we can even mature or like this workflow to see the actual column values and see if it relates in some way. Yeah.
+
+Yeah, yeah, yeah, okay, okay, so? You didn't happen to run it yet. Did you? Sorry. You didn't happen to run it yet. Did you no, no, like?
+
+
+I was like just thinking because, like, I make a lot of changes, and then I hate it a lot. So, my credits get burned. And then I ended up like, you know, using it way before my in month, and so I just wanna I wanna preserve the credits.
+
+
+Yeah, yeah, yeah, yeah, yeah.
+
+
+But, yeah, I think, if you okay with this, I can produce the first, uh, it should be a straightforward task. Okay, I'll on Monday I'll try to show you something for the first cut.
+
+
+Yeah, let's. Let's do it for personal. Yeah, okay, because there are this unmanned. Yeah. Okay, yeah, just a couple of questions, um? Yeah, my. Um, in a decorator mapping, right? So, let me show my screen again.
+
+
+Yeah, so I said just saw that, uh, there is an asset class and products, so only the asset class type and eodc product type make up a product or line of business comes into the place well.
+
+
+Uh, not really when determining the decorator.
+
+
+Okay, not for the decorator, but for, for, uh, probably yeah, okay, okay. Got it really, this mapping. It's just determining the decorator, then telling you the joint key to the decorator. Okay, all right. You know what I mean? So basically, it's a practice child account.
+
+
+A parent account. It can be any position type. Then it's your DC V4 iapg. Okay, okay. Looks good, all right.
+
+
+Okay, Mike. Yeah, I think, if if you guys have no feedback, I'll, uh, I'll start the work on this so. Yeah, I think this classified step will produce you the output that you wanted, or for the simple output, like the columns, what are populated. What are sample values and data type?
+
+And
+
+Then I
+
+Are using that I can proceed to the next step. So, yeah, I'll get started on this. Okay, yeah, maybe like, as a start. Like, really, just like.
+
+Even if you profiled.
+
+
+Okay, yeah.
+
+
+Those Pro columns plus measure name. Like, even if you think that would be your last step, you know what I mean? You don't even need to go to five and six. Okay. Because like. Um. Bible become more valuable, like after we've onboarded one product. Yes, you know what I mean.
+
+
+So, like, let's say we onboard the deposit information? And we put all that in fully. Then you know what I mean. It's like, okay, now we. Now, we can actually map another deposit into here and now. We can go to step five, right, correct? Yeah. Okay.
+
+
+But yeah, but this workflow is the one that we want in the future, right? Um, like, do we just a separate one, yes? And then once that is done, we can start with the actual ADLC, all right. Yes, yes, yes, yes, this looks, so this will definitely speed things up for us.
+
+
+Good. Yeah, even just having like the cardinality like, especially for Nano DC tables, I think that'll be the tricky bit. Like, for non-eodc tables, okay? Because you just say the first question is, how do I join these things together, right? Yes. Um. So, yeah, for that. It's like, what is the fastest way to find?
+
+
+Uh, join Keys between tables right, and it's usually going to be like, what's the most unique column in this data set? And does that column match the most unique column in another data set? You know what I mean? Something like that? Yeah, let's. Let's get there so. Okay, sounds good.
+
+All right. Thank you. Thank you. Okay, thank you, bye.
