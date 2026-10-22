@@ -1,1 +1,16 @@
 
+Goal 1: Data Marketplace (DMP)
+Agentic Development Lifecycle: Designed and implemented an agentic workflow (Orchestrator, Developer, QA and Analyst agents) for the DMP UI and API repos, cutting development time by ~75% and built as a reusable framework for other repos.
+Data Catalog: Delivered a central reference of all data elements with type, description and model associations for faster data discovery.
+Usage Report: Built an adoption dashboard across DMP, EDW and Trino, with trends by employee hierarchy.
+Month-End Train Schedule: Delivered a job-monitoring dashboard with late and on-time status, the monthly job catalog and required-file tracking for month-end readiness.
+Data Products: Productionized the custom dataset workflow.
+Home Page: Launched a new home page with month-end data and user-customizable dimensions and filters.
+GL Explorer and Alignment (POC): Enabled GL exploration, GL-to-SL alignment and trade-level drilldown.
+Goal 2: Finance Data Platform (FDP)
+Data Collection Service: Refactored the service to engineering standards and implemented scalable ingestion from S3 and REST APIs, with efficient large-file processing into Databricks-ready formats.
+Data Transfer Control Framework (POC): Designed end-to-end controls from source to S3, Bronze, Gold and business events, with record-count reconciliation and a train schedule dashboard.
+Avaloq Investment Account Pipeline (POC): Built an end-to-end reference pipeline orchestrated with Airflow.
+Databricks and VS Code Integration: Enabled developers to run notebooks from VS Code, simplifying analysis and debugging.
+AI-DLC Adoption: Customized RBC's AI-DLC for FDP with custom skills, automating delivery end to end from Jira ticket to PR.
+Data Discovery (in progress): Building an LLM-assisted workflow that maps source data to the Silver Canonical Data Model, with human review.
