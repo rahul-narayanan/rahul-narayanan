@@ -1,1 +1,297 @@
 
+  Speaker 1 00:13
+Oh, hey, Michael roll. Good afternoon. How's it going? Good. How are you? Yeah, pretty good. Okay, fantastic, yeah, um, so I wanted to connect with you on the cash balance week on mic, so.
+
+  Speaker 2 00:28
+Um, I have a few things that I want to check and get your two cents on it. So, okay, first, let me start with this Recon. So, what I did is, like, inside the dashboard, I had, like, one for, uh, bronze, and one for silver. Okay, so when I select the?
+
+00:50
+23. And then go to Silver. Yeah, so basically, I'm getting the same count. Uh, when, when I did from bronze tables in the same cone when I did from Silver tables, so it's matching like to like? Good, okay, and after? Abby under this sdp. To me, I fixed few things, which is because, uh, you know, without that, this Recon was not happening, and the first thing is this, uh, balance view?
+
+01:20
+So? Here. So, you remember, Abby was using this load times jump of interval 0 seconds, right? So, basically, it worked because when we are checking at that time, uh? We tried to load multiple dates, and this load timestamp was us holding the latest data. So when we, when we loaded the 23rd, data 22 was freed up, and then the 23 was held.
+
+01:44
+But then, when I try to reload the 23, the load timestamp was latest. So it released the previous version, so it's not the correct fix. It was working because. We loaded multiple times, and it was always holding the last one, but I
+
+  Speaker 1 01:58
+Think we need to remove this.
+
+  Speaker 2 02:01
+And again agreement balance. Don't need this at all because? Ah, whatever the grouping by degradation needed, uh, it's. It's the same if you do it this way, which is.
+
+  Speaker 1 02:32
+Something's wrong!
+
+02:54
+Okay, so FTP, DL, source ATMs.
+
+03:03
+So, yeah, I removed this.
+
+  Speaker 2 03:05
+Um, grouping by here. And then, I just added this direct consuming from streaming tables and then the measure name I filled ready to cash balance amount and then, so, uh, previously there was just data for October, and when we tried to load in November, there was time in dividend pending and unknown lines coming in, so I added this one more filter to make sure only we check the cash balancer mode for these two Ledges.
+
+03:30
+And then I was able to resolve it. Now we got the. Agreement balance this way, which is?
+
+  Speaker 1 03:40
+Okay, so distinct. String. Look at here.
+
+  Speaker 2 03:48
+Yeah, so for each um portion, this is the agreement key. And then, for each lecture currency, we have a balance in the agreement agreement balance table.
+
+  Speaker 3 03:59
+Okay, so that needs to be removed, and he does the same for this business he wants. But um, we need to do this. This is where the complexity lies, because, um. Without this watermark, we are facing some some more issues, so I'm trying to see what's the best solution for this.
+
+04:14
+So, I'm working on it yet. But that's fine. And then the one more thing is like agreement balance. Cdc key. So, here you use this CDC key for agreement balance as.
+
+04:30
+Agreement key, okay, and the agreement key was built based on, um, yeah, I
+
+  Speaker 1 04:36
+Can't do that.
+
+  Speaker 3 04:37
+Yeah, so, uh, you have to use the balance key, right, which is the combination of Ledger currency and the this one. So, this is how I was able to land the correct
+
+  Speaker 1 04:48
+Ways. Basically, whatever your whatever you're aggregating by right, okay, yes. You know whoever you're grouping by? Yeah, yeah, needs to be. Yeah, okay, yeah, that's the balance key. Yeah, with the balance key, I was able to get it, uh, loaded. So, yeah, that worked.
+
+  Speaker 2 05:04
+And then, okay, and then this account and agreements. Okay, so the account he uses Source account ID for the account, and uh, financial agreement? But then he used. Eod portion ID for the other ones balances and the events, so this was mismatching. And then, when I checked when we ran with this code, uh, it was dropping lot of data, because basically, we are getting the same account IDs, multiple contracts, and the DQ check ignores anything more than one contract, like more than one rows it.
+
+05:36
+It refers, uh, them as duplicates, and it's dropping that.
+
+05:47
+Uh,
+
+  Speaker 3 05:48
+You can't use or we should use. No, can't? Okay. Um.
+
+  Speaker 2 05:54
+In that case. What's the correct agreement giving because only when using the EOD portion ID is unique across all the rows? So, I think basically what happened here, like in the if you go back to that query, the business event, a query that you just had there, right?
+
+  Speaker 3 06:09
+Uh, the source of this table is from this subquery, right?
+
+  Speaker 2 06:14
+Yes, correct?
+
+  Speaker 3 06:16
+You measure it, but realistically, like, what you should do is join measure, and um, the position file, okay? Take it to necessary information that you need. You know what I mean? So, like you, if you do that, then you can get Source account ID, right? And then, you can also get position ID instead of using the measure values Source system ID.
+
+06:41
+It's this account ID. You can get the positions for system ID and the region, right where the region is that right. And then. And then that way you're constructing the key the same way. You know what I mean, instead of trying to invent the same key using different data elements, got it okay.
+
+07:02
+Makes sense.
+
+  Speaker 2 07:03
+But, yeah, um. So, for now, I just use this, and it seems to be loading. Um, because I've used the, uh, you know, this event ID was generated based on all the other things like Source Ledger, even group and event type. So, yeah, yeah. I need to fix that.
+
+07:16
+Okay, Mike, yeah, and then the the last one, too, is I'm not saying no, right, like, um? I think also.
+
+  Speaker 3 07:26
+If you like the the queries that are populating the? Uh, other tables, um. Um, they're. I think they're either looking at the position file or the decorator file. But you really could just join together. The position in the decorator file on the on the caller, or you could just join those things together.
+
+07:47
+You know what I mean, instead of doing them individually, okay, okay? Because, uh, then they'll also ensure that you're between the two. You're looking at the same row,
+
+  Speaker 2 07:58
+You know, what?
+
+  Speaker 3 07:59
+I mean, there's no guarantee. Like that. You're like, so it'd be interesting to see. If you, if you go to like power populating. The account table yeah, SQL. So, this is from position everything's from position. Okay, yeah, I guess, in this case, like, not much comes from the Death Creator.
+
+08:27
+Actually, the account type should have come from the decorator.
+
+  Speaker 2 08:31
+Okay, so yeah, I think if, if not used it, you've just put null for now. Yeah, okay, yeah, yeah, so, like, yeah, the account type comes from the decorator. Um. Strangely enough, you know?
+
+  Speaker 3 08:48
+Yeah, basically like so for, like, the account table. There's no amateurizing. Um, but like, yeah, for, like, the account table? And then, okay. This is straight from. Position. Or the account, like the position view. Click on click on where's the position view? Can you click on the position view?
+
+09:15
+Okay, she select star from here. Like it, we shouldn't do that, like, we should just select the columns that we actually are going to use. Okay, only column so good. Yeah, yeah, that. And then. The other thing too is like, since we're working since like this specifically. Um, is going to look at, uh, the investment account.
+
+09:38
+It also needs to be filtered.
+
+09:43
+Um. Uh, well, if you use the DC.
+
+09:53
+Um, in child accounts, you know what I mean? Fantastic the account side, but then, like, when we get it, like, there's more tables that we need to populate. Um, and those are looking at the Securities. You know what I mean, so? Uh, we have to separate this stuff up, you know?
+
+10:10
+Okay, okay.
+
+  Speaker 2 10:13
+But um, we also need to have a push and type as contracted portion, because, um.
+
+  Speaker 1 10:18
+Here, which is account with just taking all the portions, right. But we need this filter, right? Because other than the contractor portions, they are, uh, instrument and rate positions. Those go into Holdings.
+
+  Speaker 3 10:32
+Uh, yes, that is correct, right? So like, and that's this is another way to apply the filter, right? So, like, you could use asset class and product type and just you. Or you could use the acid classroom project. I think the asset class is child accounts. Yes, right? Um, a contracted position say, it's like, it's the same relationship, you know, what I mean?
+
+10:51
+Um, so, yeah, you could do contracts. Could you filter by this as well, right? Uh, and yeah, this is exactly correct, because um. If you use, uh, this, um? Logic. There should be duplicates. Um, you know? Okay, though, but because the source account ID is on. Like the source account.
+
+11:17
+ID like on these contracted position side. Like, you have it here, right? Is it one-to-one relationship between the contract or between like the agreement and the account, right? Yeah. Then, if you don't filter on it, right? And you include the Securities, then all of a sudden, you have a whole bunch of account numbers like the same account number repeated over and over again for each security that's held inside the account as well.
+
+11:39
+Good.
+
+11:44
+Okay. All right,
+
+  Speaker 1 11:46
+All right. Okay, I think, yeah, like a lot of things to be fixed.
+
+  Speaker 3 11:50
+We got some researching to do. Yeah, yeah, I mean, like, that's kind of how we have to always like, approach it. It's like we have to subset the data to the lowest volume required. In order to do our work, you know what I mean? That's, like, like, kind of, like, um.
+
+12:06
+My, uh, my data engineering 101 for everybody is like, that is, like, the first step of every operation that you do is always subset the data to the smallest volume before you have to do anything with it, you know?
+
+12:22
+Yeah, only work with that, and then it applies for. It applies for, uh, columns and rows, too, because like, if you start pulling, like, because at the end of the day, it's just shaping the amount of data that needs to be pulled into memory off disk. You know what I mean?
+
+12:36
+Um. So, okay, yeah. I've seen it. I've seen look. Oh, it's it's parquet, so you can have as many comms as you want. I'm, like, yeah, you can actually build into memory. Like, I've I've like, I've like we had this, like the security reference data set. It's like, really, really big, right?
+
+13:02
+Yeah, um. Wide, right? People gave me that same argument, and then they're like it doesn't matter if you remove columns. It's going to take the same amount of time. I was, like, watch watch. You only need 20 columns, don't pull in 200, and then they were pulling into 20.
+
+13:21
+And you know, because, like, you know, 20 times a million rows, not so bad. 200 by a million rows is a lot different.
+
+  Speaker 2 13:27
+Yeah,
+
+  Speaker 3 13:28
+Total data volume that needs to it needs to jump from disks to memory, right? So?
+
+  Speaker 2 13:37
+Memory anyway. So, yeah, yeah, yeah, yeah, yeah, the less of it. You need the better at the end of the day, right? So, yeah, like, that's kind of thinking about it. It's like.
+
+  Speaker 3 13:48
+Um, yeah, we have to subset the data by the stuff that we're going to work with, but you know, yeah.
+
+  Speaker 2 13:56
+Okay, yeah. So, yeah, this? Uh, Recon is okay now, so I'll I'll make the changes. And then, um, I think I've have other wishes to fix, and then only he populated few tables. So, based on that updated data model, we might have to deal with other tables. Should I wait until gurmit completes his, um, review, and gives us the final mapping, or can I do it on the side on my own?
+
+14:20
+Uh, I think you can do it on the side on your own. Okay, you know, um?
+
+  Speaker 1 14:25
+Yeah, yeah, uh, can you go back to the dashboard for a second?
+
+  Speaker 3 14:31
+So, here we have positions reconciled 123, 000 reconciled. Okay, a hundred percent, uh, and then you have a 1000 missing. Yeah.
+
+14:47
+Okay, okay,
+
+  Speaker 2 14:48
+All right. So I did, because, uh, it's a single decimal. So it shows 100%, but yeah, 99.9.
+
+  Speaker 3 14:56
+Okay, gotcha, gotcha, okay, and then missing day two positions in day one. Not in day two, there's 58.
+
+  Speaker 1 15:06
+So new positions. Yeah, I mean, it is released once, yeah. And then, these 23 are new positions. Okay.
+
+  Speaker 3 15:15
+I'm curious. Oh, because this is against you, got the silver one.
+
+15:23
+So, how did you figure that out? Okay, so
+
+  Speaker 2 15:26
+That's been we can kpis, okay? Give me a silver.
+
+  Speaker 1 15:34
+Let's need
+
+  Speaker 2 15:35
+Two. Okay, so I'll I'll get a day or day, one day two, and then for the reconciliation I try to see here, uh, position missing. So here, so I'll I'll get it from the reg status of. Okay, day two, and then position I didn't give me one second.
+
+15:57
+Just let me run this, let's see.
+
+  Speaker 1 16:03
+So, this is pushing's missing date 2, which is 58 so?
+
+16:17
+And 60. Yeah, so when I uh, when the VOD portion ID is null? Um. The first day one. Okay, and then it. It populates that in day two, then it's. It's a new new addition. If the reverse case is missing, right? I see, okay, okay?
+
+  Speaker 3 16:38
+Gotcha. Okay, okay.
+
+  Speaker 1 16:48
+But
+
+  Speaker 3 16:48
+It's, uh, it's again the same, so.
+
+16:53
+All right.
+
+16:57
+Okay, Mike, so I think this is out of the plate, so it seems to be matching. But again, we need to make these changes and see it finally, right? Uh, and then this is the source mappings that I was talking about. So, under products, now you get this mapping.csv, so this is basically this, uh, pixel sheet.
+
+17:17
+Yeah, so you get the whole bunch of rows like, uh, so stable. What's the column and then the description from eodc dictionary? And then, whether it's mapped, what is Target table along with the reasoning behind
+
+  Speaker 1 17:29
+That? Mm-Hmm.
+
+  Speaker 3 17:31
+So, yeah, anyone running this, uh, mappings? We'll get this entire CSV, and then they can, uh, check each one, and if they can override or accept it.
+
+17:45
+Yeah, we're gonna have to, um. Something is going to have to be in here to talk about, like the filter criteria that we just talked about.
+
+  Speaker 2 18:00
+Yeah, we have to think about that right. Like, you know for, you know what I mean? Like, for the investment account side, you filter it by this. For the positions like that, right? And they'll have different mappings. Yeah. Okay, yeah, something to think about, I'll? Think about that.
+
+  Speaker 3 18:22
+All right. Okay, Mike, yeah, so I'll proceed with the fixing few things here and there and see how it comes up. And then we have to figure out the controls dashboard out of the event logs that STP produces. So that's another big work.
+
+  Speaker 2 18:42
+Uh, okay, okay, yeah, yeah, yeah.
+
+  Speaker 3 18:50
+Um, fetch data from that and fit into our control tables right to produce the dashboard, the train serial dashboard, yeah. Yeah, yeah, you can, just maybe, that's a good one for Ragu to work on. Yes, because the logs are there, so it's not going to change. Yeah, yeah, yeah.
+
+  Speaker 2 19:08
+Yeah, okay, yeah, if you wanna if you want to hand that to him, that'd be good,
+
+  Speaker 3 19:12
+Uh, for Rahoo, correct,
+
+  Speaker 2 19:13
+Yeah, very good. Yeah, yeah, okay. I'll explain that to him, so I connected with him this morning. Uh, he still have priced access to a few things he doesn't have access to repo yet.
+
+  Speaker 3 19:24
+And graphics, also. So once you have the access, I'll give him a walkthrough of everything the data model, and then I'll hand over this to him. Well, yeah, just to, like, I think you keep working on the the mapping piece. Okay, yeah. Um,
+
+  Speaker 2 19:37
+And then, but the rest of it, he can do it, right? Yeah, like, the, um, yeah. They're reading from the control logs and writing that to the control table and all that connect.
+
+19:52
+Mr, proving all of his access requests now.
+
+  Speaker 3 19:54
+Okay, so he's the only one, uh, Abby said. Like, there will be multiple guys joining or he's the only one there will be
+
+  Speaker 2 20:00
+More people. Okay, there will be more people coming. Yeah. All right, and uh yeah, I have to. We're going to start hurrying the heck up with this, uh, data model in the mapping, so that, uh, already, all right. Okay, thank you, bye.
